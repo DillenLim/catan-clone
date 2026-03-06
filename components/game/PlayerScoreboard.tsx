@@ -1,6 +1,6 @@
 import React from "react";
 import { GameState } from "../../lib/types";
-import { Crown, Shield, Activity } from "lucide-react";
+import { Crown, Shield, Activity, Users, Layout } from "lucide-react";
 
 interface Props {
     state: GameState;
@@ -11,54 +11,85 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
     const vpTarget = state.settings.victoryPoints || 10;
 
     return (
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col gap-2 border border-slate-200">
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-1">Players</h2>
-            {state.players.map(p => {
-                const isMe = p.id === myPlayerId;
-                const isCurrent = state.currentPlayerId === p.id;
-                // Count resources (might be a number if sanitized)
-                const resCount = 'resourceCount' in p.resources
-                    ? (p.resources as { resourceCount: number }).resourceCount
-                    : Object.values(p.resources).reduce((sum, val) => sum + ((val as number) || 0), 0);
+        <div className="glass-dark rounded-3xl p-6 shadow-2xl border-t border-white/10 flex flex-col gap-4">
+            <div className="flex items-center gap-2 mb-2">
+                <Users size={18} className="text-blue-400" />
+                <h2 className="font-outfit font-black text-white/90 text-sm uppercase tracking-[0.2em]">Participants</h2>
+            </div>
 
-                const devCount = 'devCardCount' in p.devCards
-                    ? (p.devCards as { devCardCount: number }).devCardCount
-                    : p.devCards.length;
+            <div className="flex flex-col gap-3">
+                {state.players.map(p => {
+                    const isMe = p.id === myPlayerId;
+                    const isCurrent = state.currentPlayerId === p.id;
+                    const resCount = 'resourceCount' in p.resources
+                        ? (p.resources as { resourceCount: number }).resourceCount
+                        : Object.values(p.resources).reduce((sum, val) => sum + ((val as number) || 0), 0);
 
-                // Base VPs (cities + settlements)
-                let vp = p.settlementsBuilt + p.citiesBuilt * 2;
-                if (p.hasLongestRoad) vp += 2;
-                if (p.hasLargestArmy) vp += 2;
+                    const devCount = 'devCardCount' in p.devCards
+                        ? (p.devCards as { devCardCount: number }).devCardCount
+                        : p.devCards.length;
 
-                return (
-                    <div
-                        key={p.id}
-                        className={`flex items-center justify-between p-2 rounded-lg border ${isCurrent ? "border-blue-500 bg-blue-50" : "border-transparent bg-slate-50"
-                            }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="w-4 h-4 rounded-full shadow-inner border border-black/20"
-                                style={{ backgroundColor: p.color }}
-                            />
-                            <span className={`font-medium ${isMe ? "text-blue-700" : "text-slate-700"}`}>
-                                {p.name} {isMe && "(You)"} {!p.isConnected && "(Offline)"}
-                            </span>
+                    let vp = p.settlementsBuilt + p.citiesBuilt * 2;
+                    if (p.hasLongestRoad) vp += 2;
+                    if (p.hasLargestArmy) vp += 2;
+
+                    return (
+                        <div
+                            key={p.id}
+                            className={`flex flex-col p-4 rounded-2xl border-2 transition-all duration-300 ${isCurrent
+                                    ? "border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                                    : "border-white/5 bg-white/5"
+                                }`}
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-4 h-4 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] border-2 border-white/20"
+                                        style={{ backgroundColor: p.color }}
+                                    />
+                                    <span className={`font-outfit font-black text-sm tracking-wide ${isMe ? "text-blue-400" : "text-white/80"}`}>
+                                        {p.name} {isMe && "(YOU)"}
+                                    </span>
+                                </div>
+                                {!p.isConnected && <span className="text-[10px] font-black text-red-400/60 uppercase">Offline</span>}
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-full border border-white/5" title="Victory Points">
+                                        <Crown size={12} className="text-yellow-400" />
+                                        <span className="text-xs font-black text-white/90 font-mono">{vp}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-full border border-white/5" title="Resources">
+                                        <Layout size={12} className="text-blue-400" />
+                                        <span className="text-xs font-black text-white/70 font-mono">{resCount}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-1.5">
+                                    {p.hasLongestRoad && (
+                                        <div className="bg-amber-500/20 p-1.5 rounded-lg border border-amber-500/30" title="Longest Road">
+                                            <Activity size={14} className="text-amber-400" />
+                                        </div>
+                                    )}
+                                    {p.hasLargestArmy && (
+                                        <div className="bg-slate-500/20 p-1.5 rounded-lg border border-slate-500/30" title="Largest Army">
+                                            <Shield size={14} className="text-slate-300" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Current Turn Progress Bar (Subtle) */}
+                            {isCurrent && (
+                                <div className="mt-3 h-1 bg-blue-500/20 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 w-1/2 animate-[shimmer_1.5s_infinite]" />
+                                </div>
+                            )}
                         </div>
-
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                            {p.hasLongestRoad && <span className="flex items-center gap-1 text-amber-600" title="Longest Road"><Activity size={14} /> </span>}
-                            {p.hasLargestArmy && <span className="flex items-center gap-1 text-slate-700" title="Largest Army"><Shield size={14} /> </span>}
-
-                            <span title="Victory Points" className="font-bold text-slate-800 flex items-center gap-1">
-                                <Crown size={14} className="text-yellow-500" /> {vp}/{vpTarget}
-                            </span>
-                            <span title="Cards in hand" className="px-2 bg-slate-200 rounded text-xs font-mono">{resCount}</span>
-                            <span title="Dev Cards" className="px-2 bg-purple-100 text-purple-800 rounded text-xs font-mono">{devCount}</span>
-                        </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
         </div>
     );
 }

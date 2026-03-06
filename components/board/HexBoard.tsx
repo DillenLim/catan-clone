@@ -5,7 +5,7 @@ import { RoadPiece } from "./RoadPiece";
 import { SettlementPiece } from "./SettlementPiece";
 import { CityPiece } from "./CityPiece";
 import { BoardOverlay } from "./BoardOverlay";
-import { HEX_SIZE } from "./math";
+import { HEX_SIZE, axialToPixel, scaleCoords } from "./math";
 
 interface Props {
     gameState: GameState;
@@ -16,28 +16,22 @@ interface Props {
 }
 
 export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, onHexClick }: Props) {
-    // Determine SVG bounding box
-    // A standard board has radius 2, meaning max q is 2, max r is 2.
-    // Extents roughly: width 6 hex widths, height 6 hex heights
-    const width = 800;
-    const height = 700;
+    const width = 1000;
+    const height = 900;
 
     const getPlayerColor = (playerId: string) => {
         return gameState.players.find(p => p.id === playerId)?.color || "#fff";
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto aspect-square md:aspect-video flex bg-blue-100 rounded-xl overflow-hidden shadow-inner border-4 border-blue-200">
+        <div className="w-full flex-1 flex bg-sky-100 rounded-3xl overflow-hidden shadow-2xl relative border-8 border-white/20 backdrop-blur-md">
             <svg
                 viewBox={`-${width / 2} -${height / 2} ${width} ${height}`}
-                className="w-full h-full"
-                style={{ filter: "drop-shadow(0px 10px 15px rgba(0,0,0,0.1))" }}
+                className="w-full h-full drop-shadow-2xl"
             >
                 <g id="board-layer">
                     {gameState.hexes.map(hex => {
-                        // Hex coordinates scaling
-                        const cx = (Math.sqrt(3) * hex.q + (Math.sqrt(3) / 2) * hex.r) * HEX_SIZE;
-                        const cy = (3 / 2 * hex.r) * HEX_SIZE;
+                        const { x, y } = axialToPixel(hex.q, hex.r);
 
                         return (
                             <HexTile
@@ -45,8 +39,8 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
                                 q={hex.q}
                                 r={hex.r}
                                 type={hex.type}
-                                cx={cx}
-                                cy={cy}
+                                cx={x}
+                                cy={y}
                                 size={HEX_SIZE}
                                 numberToken={hex.numberToken}
                                 hasRobber={hex.hasRobber}
@@ -57,10 +51,12 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
 
                 <g id="harbors-layer">
                     {gameState.vertices.filter(v => v.harbor).map(v => {
-                        // Draw a tiny text/circle for the harbor
-                        const label = v.harbor!.type === "generic" ? "3:1" : `2:1 ${v.harbor!.type.substring(0, 2).toUpperCase()}`;
+                        const coords = scaleCoords(v.x, v.y);
+                        const label = v.harbor!.type === "generic"
+                            ? "3:1"
+                            : `2:1 ${v.harbor!.type === "wood" ? "WD" : v.harbor!.type === "wool" ? "WL" : v.harbor!.type.substring(0, 2).toUpperCase()}`;
                         return (
-                            <g key={`harbor-${v.id}`} transform={`translate(${v.x}, ${v.y})`}>
+                            <g key={`harbor-${v.id}`} transform={`translate(${coords.x}, ${coords.y})`}>
                                 <circle cx="0" cy="0" r="14" fill="#eee" stroke="#333" strokeDasharray="2,2" />
                                 <text x="0" y="4" fontSize="10" textAnchor="middle" fontWeight="bold">{label}</text>
                             </g>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Vertex } from "../../lib/types";
+import { scaleCoords } from "./math";
 
 interface Props {
     vertex: Vertex;
@@ -7,17 +8,17 @@ interface Props {
 }
 
 export function SettlementPiece({ vertex, color }: Props) {
-    const HEX_SIZE = 56;
+    const coords = scaleCoords(vertex.x, vertex.y);
     return (
-        <g transform={`translate(${vertex.x * HEX_SIZE}, ${vertex.y * HEX_SIZE})`} style={{ pointerEvents: "none" }}>
-            {/* Simple House shape */}
+        <g transform={`translate(${coords.x}, ${coords.y})`} style={{ pointerEvents: "none" }}>
             <polygon
                 points="-12,4 -12,-4 0,-14 12,-4 12,4"
                 fill={color}
-                stroke="#222"
-                strokeWidth="1.5"
+                stroke="#000"
+                strokeWidth="2"
+                style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))" }}
             />
-            <rect x="-12" y="4" width="24" height="10" fill={color} stroke="#222" strokeWidth="1.5" />
+            <rect x="-12" y="4" width="24" height="10" fill={color} stroke="#000" strokeWidth="2" />
         </g>
     );
 }

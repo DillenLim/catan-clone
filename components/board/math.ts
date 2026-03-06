@@ -1,12 +1,25 @@
-// Math functions for SVG rendering
-export const HEX_SIZE = 56;
-export const HEX_WIDTH = 2 * HEX_SIZE;
-export const HEX_HEIGHT = Math.sqrt(3) * HEX_SIZE;
+// Math constants and functions for SVG rendering
+export const HEX_SIZE = 70; // Increased base size for better visibility
+export const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
+export const HEX_HEIGHT = 2 * HEX_SIZE;
 
-export function hexToPixel(q: number, r: number) {
-    const x = HEX_SIZE * (3 / 2 * q);
-    const y = HEX_SIZE * ((Math.sqrt(3) / 2) * q + Math.sqrt(3) * r);
+/**
+ * Pointy-top axial to pixel coordinates
+ */
+export function axialToPixel(q: number, r: number) {
+    const x = HEX_SIZE * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+    const y = HEX_SIZE * (3 / 2 * r);
     return { x, y };
+}
+
+/**
+ * Scale unit-radius coordinates from the server to screen pixels
+ */
+export function scaleCoords(x: number, y: number) {
+    return {
+        x: x * HEX_SIZE,
+        y: y * HEX_SIZE
+    };
 }
 
 export function hexCorners(cx: number, cy: number, size: number) {

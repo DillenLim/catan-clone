@@ -202,7 +202,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
 
     return (
-        <div className="min-h-screen bg-slate-100 flex p-4 gap-4 flex-col lg:flex-row">
+        <div className="min-h-screen relative flex p-4 lg:p-10 gap-6 flex-col lg:flex-row font-inter antialiased overflow-hidden">
+            {/* Immersive Ocean Background */}
+            <div className="ocean-bg" />
+            <div className="ocean-wave opacity-50" style={{ animationDelay: "-2s" }} />
+            <div className="ocean-wave opacity-30" style={{ animationDelay: "-7s" }} />
+            <div className="ocean-wave opacity-20" style={{ animationDelay: "-12s" }} />
 
             {/* Global error toast */}
             {error && (
@@ -250,32 +255,43 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
                 {/* Status Bar */}
-                <div className="bg-white p-4 rounded-xl shadow border border-slate-200 mb-4 flex justify-between items-center text-sm font-bold">
-                    <div className="flex items-center gap-2">
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full uppercase tracking-wider text-xs">
-                            Room: {gameState.roomCode}
-                        </span>
-                        <span className="text-slate-500">
-                            Phase: <span className="text-slate-800">{gameState.phase.replace(/_/g, " ")}</span>
-                        </span>
+                <div className="glass-dark p-6 rounded-3xl shadow-2xl border-t border-white/5 mb-6 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Room Code</span>
+                            <span className="font-outfit font-black text-2xl text-white tracking-tighter leading-none">
+                                {gameState.roomCode}
+                            </span>
+                        </div>
+                        <div className="w-[1px] h-8 bg-white/10 mx-2" />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Current Phase</span>
+                            <span className="font-outfit font-black text-xl text-white/80 leading-none">
+                                {gameState.phase.replace(/_/g, " ").toUpperCase()}
+                            </span>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-6">
                         {gameState.currentPlayerId === playerId ? (
-                            <span className="text-green-600 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Your Turn
-                            </span>
+                            <div className="flex items-center gap-3 bg-green-500/10 px-4 py-2 rounded-2xl border border-green-500/20">
+                                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                                <span className="font-outfit font-black text-green-400 tracking-wide">YOUR TURN</span>
+                            </div>
                         ) : (
-                            <span className="text-slate-500">
-                                Waiting for {gameState.players.find(p => p.id === gameState.currentPlayerId)?.name}...
-                            </span>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Waiting For</span>
+                                <span className="font-outfit font-black text-white/60 tracking-tight">
+                                    {gameState.players.find(p => p.id === gameState.currentPlayerId)?.name.toUpperCase()}
+                                </span>
+                            </div>
                         )}
                         {gameState.currentPlayerId === playerId && gameState.phase === "action" && (
                             <button
                                 onClick={() => dispatchAction({ type: "END_TURN" })}
-                                className="ml-4 px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors border-b-2 border-red-700 active:border-b-0 active:translate-y-0.5"
+                                className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-outfit font-black rounded-2xl transition-all border-b-4 border-red-800 active:border-b-0 active:translate-y-1 shadow-lg shadow-red-900/40"
                             >
-                                End Turn
+                                END TURN
                             </button>
                         )}
                     </div>

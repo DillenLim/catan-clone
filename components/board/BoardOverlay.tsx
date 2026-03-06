@@ -1,5 +1,6 @@
 import React from "react";
 import { GameState } from "../../lib/types";
+import { HEX_SIZE, axialToPixel, scaleCoords } from "./math";
 
 interface Props {
     state: GameState;
@@ -13,7 +14,7 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
     const isMyTurn = state.currentPlayerId === myPlayerId;
     const isPlacement = state.phase === "initial_settlement" || state.phase === "initial_road";
 
-    if (!isMyTurn && !isPlacement) return null; // Only show interactive zones when it's your turn (or you're placing)
+    if (!isMyTurn && !isPlacement) return null;
 
     const showRobberZones = state.phase === "move_robber";
     const showVertexZones = state.phase === "initial_settlement" || state.phase === "action";
@@ -24,12 +25,8 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
             {/* Hex Centers for Robber */}
             {showRobberZones && state.hexes.map(hex => {
                 if (hex.hasRobber) return null;
-                const cx = Math.sqrt(3) * hex.q + (Math.sqrt(3) / 2) * hex.r;
-                const cy = 3 / 2 * hex.r;
-                // Scale back up to SVG units using HEX_SIZE = 56
-                const px = cx * 56;
-                const py = cy * 56;
-                return <circle key={`hex-${hex.id}`} cx={px} cy={py} r={30} fill="transparent" onClick={() => onHexClick(hex.id)} />;
+                const { x, y } = axialToPixel(hex.q, hex.r);
+                return <circle key={`hex-${hex.id}`} cx={x} cy={y} r={HEX_SIZE * 0.6} fill="transparent" onClick={() => onHexClick(hex.id)} className="hover:fill-white/10" />;
             })}
 
             {/* Edges for Roads */}
@@ -38,33 +35,33 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
                 const v1 = state.vertices.find(v => v.id === edge.vertexIds[0]);
                 const v2 = state.vertices.find(v => v.id === edge.vertexIds[1]);
                 if (!v1 || !v2) return null;
+                const p1 = scaleCoords(v1.x, v1.y);
+                const p2 = scaleCoords(v2.x, v2.y);
                 return (
                     <line
                         key={`edge-${edge.id}`}
-                        x1={v1.x} y1={v1.y}
-                        x2={v2.x} y2={v2.y}
+                        x1={p1.x} y1={p1.y}
+                        x2={p2.x} y2={p2.y}
                         stroke="transparent"
-                        strokeWidth={20}
+                        strokeWidth={25}
                         onClick={() => onEdgeClick(edge.id)}
-                        className="hover:stroke-blue-400 hover:stroke-opacity-50"
+                        className="hover:stroke-white hover:stroke-opacity-30 transition-all duration-200"
                     />
                 );
             })}
 
             {/* Vertices for Settlements/Cities */}
             {showVertexZones && state.vertices.map(vertex => {
-                // Technically, clicking a city to upgrade shouldn't be blocked if it's our settlement
-                // But if it's already a city or an opponent building, ignore
                 if (vertex.building && (vertex.building.type === "city" || vertex.building.playerId !== myPlayerId)) return null;
-
+                const { x, y } = scaleCoords(vertex.x, vertex.y);
                 return (
                     <circle
                         key={`vert-${vertex.id}`}
-                        cx={vertex.x}
-                        cy={vertex.y}
-                        r={15}
+                        cx={x}
+                        cy={y}
+                        r={18}
                         fill="transparent"
-                        className="hover:fill-blue-400 hover:fill-opacity-50"
+                        className="hover:fill-white hover:fill-opacity-40 transition-all duration-200"
                         onClick={() => onVertexClick(vertex.id)}
                     />
                 );
