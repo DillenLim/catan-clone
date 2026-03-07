@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Catan Friends 🏰🎲
 
-## Getting Started
+A modern, minimal, web-based Catan clone designed for playing with friends. Built with Next.js, React, Tailwind CSS, and PartyKit for live multiplayer synchronization.
 
-First, run the development server:
+## Features ✨
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Core Gameplay
+- Fully functional Hexagonal Board generation and interaction.
+- Complete game loop: Rolling dice, resource distribution, trading, building, and playing Development Cards.
+- "Longest Road" and "Largest Army" tracking.
+- Robber functionality (discarding half your cards and stealing).
+- Win condition tracking (10 Victory Points).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Highly Polished Visuals & UX
+We've focused heavily on making the UI not just functional, but a joy to use. Recent updates include:
+- **Translucent Ghost Previews**: When building a road, settlement, or city, hovering over a valid spot displays a pulsing, translucent 3D preview of your actual game piece, rather than generic outlines or white boxes.
+- **Colonist-Style Animations**: When resources are gathered after a dice roll, animated icons burst from the producing hex and fly directly into the players' scoreboards on the sidebar.
+- **Thematic Interactive UI**: The Robber "Discard Cards" sequence utilizes a dark, immersive modal where players click directly on physical resource cards to move them between their "Hand" and the "Discard Pile".
+- **Rich Text Game Logs**: The live game log automatically parses actions to display beautiful inline resource badges (e.g., `[1 Wood]`) and building icons.
+- **Dynamic Layout**: A dark-glass themed sidebar that smartly flows from Game Logs to Player Stats, Bank availability, and Build Menus without requiring scrolling.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack 🛠️
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend:** Next.js 14, React 18, Tailwind CSS, Framer Motion (for animations).
+- **Backend/Multiplayer:** [PartyKit](https://www.partykit.io/) (WebSockets for real-time state synchronization).
+- **Icons:** Lucide React.
 
-## Learn More
+## Getting Started 🚀
 
-To learn more about Next.js, take a look at the following resources:
+1. **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Start the development servers:**
+    You need to run both the Next.js frontend and the PartyKit backend locally.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    Terminal 1 (Next.js App):
+    ```bash
+    npm run dev
+    ```
 
-## Deploy on Vercel
+    Terminal 2 (PartyKit Server):
+    ```bash
+    npx partykit dev
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Play:**
+    Open [http://localhost:3000](http://localhost:3000) with your browser. From the home screen, you can generate a room code and invite friends to join your live game.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Architecture Highlights
+- `lib/game-logic/`: Contains pure functions defining the strict rules of Catan (board generation, validating actions, checking costs).
+- `party/index.ts`: The authoritative game server. It holds the canonical `GameState` and safely applies actions broadcasted from connected clients via websockets.
+- `app/room/[code]/page.tsx`: The main game UI wrapper that connects to the PartyKit room and renders the board and sidebars.

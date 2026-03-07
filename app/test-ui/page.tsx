@@ -11,6 +11,8 @@ import { TradePanel } from "../../components/game/TradePanel";
 import { GameLog } from "../../components/game/GameLog";
 import { BankDisplay } from "../../components/game/BankDisplay";
 import { DebugControls } from "../../components/game/DebugControls";
+import { ResourceAnimator } from "../../components/game/ResourceAnimator";
+import { DiscardModal } from "../../components/ui/DiscardModal";
 import { GameState, Player, Hex, Vertex, Edge } from "../../lib/types";
 import { generateBoard } from "../../lib/game-logic/board";
 
@@ -88,8 +90,9 @@ const generateMockState = (): GameState => {
         longestRoadLength: 4,
         largestArmyPlayerId: "p2",
         largestArmyCount: 2,
-        lastDiceRoll: [3, 4],
-        pendingDiscarders: [],
+        lastDiceRoll: null,
+        lastDistribution: null,
+        pendingDiscarders: ["p1"],
         pendingTradeOffer: null,
         log: [
             { timestamp: Date.now(), text: "Game started", playerId: "system" },
@@ -135,6 +138,8 @@ export default function TesterPage() {
 
     return (
         <div className="h-screen w-screen relative flex p-2 lg:p-4 gap-4 flex-col lg:flex-row font-inter antialiased overflow-hidden bg-slate-900">
+            <ResourceAnimator state={gameState} />
+            <DiscardModal state={gameState} myPlayerId={playerId} onDiscard={() => { }} />
             <div className="ocean-bg" />
 
             {/* ── MAIN BOARD COLUMN ── */}

@@ -141,7 +141,7 @@ export function applyAction(
             edge.road = { playerId };
             newPlayer.roadsBuilt += 1;
 
-            newState.log.push({ timestamp: Date.now(), text: "built a road", playerId });
+            newState.log.push({ timestamp: Date.now(), text: "built a [road]", playerId });
             updateLongestRoad(newState);
             break;
         }
@@ -165,7 +165,7 @@ export function applyAction(
             vertex.building = { type: "settlement", playerId };
             newPlayer.settlementsBuilt += 1;
 
-            newState.log.push({ timestamp: Date.now(), text: "built a settlement", playerId });
+            newState.log.push({ timestamp: Date.now(), text: "built a [settlement]", playerId });
             updateLongestRoad(newState); // Opponent settlement can break your road
             break;
         }
@@ -186,7 +186,7 @@ export function applyAction(
             newPlayer.settlementsBuilt -= 1;
             newPlayer.citiesBuilt += 1;
 
-            newState.log.push({ timestamp: Date.now(), text: "built a city", playerId });
+            newState.log.push({ timestamp: Date.now(), text: "built a [city]", playerId });
             break;
         }
 
@@ -228,7 +228,9 @@ export function applyAction(
                 newState.bank[res as keyof ResourceBundle]! -= (amt as number);
             }
 
-            newState.log.push({ timestamp: Date.now(), text: `traded with bank for ${totalRequestedAmt} resources`, playerId });
+            const offerStr = Object.entries(action.offer).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
+            const reqStr = Object.entries(action.request).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
+            newState.log.push({ timestamp: Date.now(), text: `traded ${offerStr} for ${reqStr} with bank`, playerId });
             break;
         }
 
@@ -334,7 +336,7 @@ export function applyAction(
                     newState.log.push({ timestamp: Date.now(), text: "played a Knight and stole a card", playerId });
                 }
             } else {
-                newState.log.push({ timestamp: Date.now(), text: "played a Knight", playerId });
+                newState.log.push({ timestamp: Date.now(), text: "played a [knight]", playerId });
             }
 
             updateLargestArmy(newState);
@@ -357,7 +359,7 @@ export function applyAction(
                 }
             }
 
-            newState.log.push({ timestamp: Date.now(), text: `played Monopoly on ${action.resource} (stole ${stolen})`, playerId });
+            newState.log.push({ timestamp: Date.now(), text: `played [monopoly] and stole [${stolen} ${action.resource}]`, playerId });
             break;
         }
 
@@ -375,7 +377,8 @@ export function applyAction(
             }
 
             if (totalRequested !== 2) return { valid: false, error: "Must take exactly 2 resources." };
-            newState.log.push({ timestamp: Date.now(), text: "played Year of Plenty", playerId });
+            const resStrs = Object.entries(action.resources).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
+            newState.log.push({ timestamp: Date.now(), text: `played [year_of_plenty] and took ${resStrs}`, playerId });
             break;
         }
 
@@ -387,7 +390,7 @@ export function applyAction(
             const idx = newPlayer.devCards.indexOf("road_building");
             if (idx === -1) return { valid: false, error: "No Road Building card." };
             newPlayer.devCards.splice(idx, 1);
-            newState.log.push({ timestamp: Date.now(), text: "played Road Building", playerId });
+            newState.log.push({ timestamp: Date.now(), text: "played [road_building]", playerId });
             break;
         }
 
@@ -438,8 +441,10 @@ export function applyAction(
                 offeror.resources[res as keyof ResourceBundle] = (offeror.resources[res as keyof ResourceBundle] || 0) + amt;
             }
 
+            const offerStr = Object.entries(pending.offer).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
+            const reqStr = Object.entries(pending.request).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
             newState.pendingTradeOffer = null;
-            newState.log.push({ timestamp: Date.now(), text: `accepted ${offeror.name}'s trade`, playerId });
+            newState.log.push({ timestamp: Date.now(), text: `traded ${reqStr} for ${offerStr} with ${offeror.name}`, playerId });
             break;
         }
 

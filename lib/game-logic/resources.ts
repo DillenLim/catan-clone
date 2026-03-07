@@ -12,6 +12,8 @@ export function distributeResources(roll: number, state: GameState): GameState {
     state.players.forEach(p => distribution[p.id] = { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 });
     const totalNeeded: ResourceBundle = { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 };
 
+    const distributionLog: { hexId: number; playerId: string; resource: import("../types").ResourceType; amount: number }[] = [];
+
     for (const hex of yieldingHexes) {
         if (hex.type === "desert") continue;
         const res = hex.type === "forest" ? "wood" :
@@ -26,6 +28,14 @@ export function distributeResources(roll: number, state: GameState): GameState {
                 const amount = v.building.type === "city" ? 2 : 1;
                 distribution[v.building.playerId][res] = (distribution[v.building.playerId][res] || 0) + amount;
                 totalNeeded[res] = (totalNeeded[res] || 0) + amount;
+
+                // Record the specific source hex for animations
+                distributionLog.push({
+                    hexId: hex.id,
+                    playerId: v.building.playerId,
+                    resource: res,
+                    amount
+                });
             }
         }
     }
@@ -45,14 +55,24 @@ export function distributeResources(roll: number, state: GameState): GameState {
         }
     }
 
-    // Distribute to players
     for (const p of state.players) {
+        const receivedStrs: string[] = [];
         for (const [res, amt] of Object.entries(distribution[p.id])) {
             if (amt && amt > 0) {
-                p.resources[res as keyof ResourceBundle] = (p.resources[res as keyof ResourceBundle] || 0) + amt;
+                p.resources[res as keyof ResourceBundle] = (p.resources[res as keyof ResourceBundle] || 0) + (amt as number);
+                receivedStrs.push(`[${amt} ${res}]`);
             }
         }
+        if (receivedStrs.length > 0) {
+            state.log.push({ timestamp: Date.now(), text: `got ${receivedStrs.join(" ")}`, playerId: p.id });
+        }
     }
+
+    // Attach the layout data for animations. If someone got 0 because of bank limits, we filter them out.
+    state.lastDistribution = distributionLog.filter(log => {
+        const playerReceivedTotal = distribution[log.playerId][log.resource] || 0;
+        return playerReceivedTotal > 0;
+    });
 
     return state;
 }

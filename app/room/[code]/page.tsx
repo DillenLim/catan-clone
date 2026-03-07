@@ -16,6 +16,7 @@ import { GameLog } from "../../../components/game/GameLog";
 import { BankDisplay } from "../../../components/game/BankDisplay";
 import { DiscardModal } from "../../../components/ui/DiscardModal";
 import { DevCardModal } from "../../../components/ui/DevCardModal";
+import { ResourceAnimator } from "../../../components/game/ResourceAnimator";
 import { DebugControls } from "../../../components/game/DebugControls";
 import { DevCardType, ResourceBundle } from "../../../lib/types";
 
@@ -254,6 +255,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <button onClick={() => { setPendingDevCard(null); setPlacementMode(null); }} className="ml-2 text-purple-200 hover:text-white">✕</button>
                 </div>
             )}
+
+            <ResourceAnimator state={gameState} />
 
             {/* ── MAIN BOARD COLUMN ── */}
             <div className="flex-[3] flex flex-col min-w-0 overflow-hidden h-full">

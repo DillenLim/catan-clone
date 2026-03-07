@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { GameState } from "../../lib/types";
 import { HEX_SIZE, axialToPixel, scaleCoords } from "./math";
+import { RoadPiece } from "./RoadPiece";
+import { SettlementPiece } from "./SettlementPiece";
+import { CityPiece } from "./CityPiece";
 
 interface Props {
     state: GameState;
@@ -14,11 +17,17 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
     const isMyTurn = state.currentPlayerId === myPlayerId;
     const isPlacement = state.phase === "initial_settlement" || state.phase === "initial_road";
 
+    const [hoveredEdgeId, setHoveredEdgeId] = useState<number | null>(null);
+    const [hoveredVertexId, setHoveredVertexId] = useState<number | null>(null);
+
     if (!isMyTurn && !isPlacement) return null;
 
     const showRobberZones = state.phase === "move_robber";
     const showVertexZones = state.phase === "initial_settlement" || state.phase === "action";
     const showEdgeZones = state.phase === "initial_road" || state.phase === "action";
+
+    // Get player color for ghost previews
+    const myPlayerColor = state.players.find(p => p.id === myPlayerId)?.color || "white";
 
     return (
         <g className="board-overlay" style={{ cursor: "pointer" }}>
@@ -37,16 +46,28 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
                 if (!v1 || !v2) return null;
                 const p1 = scaleCoords(v1.x, v1.y);
                 const p2 = scaleCoords(v2.x, v2.y);
+                const isHovered = hoveredEdgeId === edge.id;
+
                 return (
-                    <line
-                        key={`edge-${edge.id}`}
-                        x1={p1.x} y1={p1.y}
-                        x2={p2.x} y2={p2.y}
-                        stroke="transparent"
-                        strokeWidth={25}
-                        onClick={() => onEdgeClick(edge.id)}
-                        className="hover:stroke-white hover:stroke-opacity-30 transition-all duration-200"
-                    />
+                    <g key={`edge-group-${edge.id}`}>
+                        {/* Invisible thicker line purely for easy hovering */}
+                        <line
+                            x1={p1.x} y1={p1.y}
+                            x2={p2.x} y2={p2.y}
+                            stroke="transparent"
+                            strokeWidth={30}
+                            onClick={() => onEdgeClick(edge.id)}
+                            onMouseEnter={() => setHoveredEdgeId(edge.id)}
+                            onMouseLeave={() => setHoveredEdgeId(null)}
+                            style={{ cursor: "pointer" }}
+                        />
+                        {/* Ghost visual representation rendered ONLY when hovered */}
+                        {isHovered && (
+                            <g style={{ opacity: 0.6 }} className="animate-pulse pointer-events-none">
+                                <RoadPiece edge={edge} allVertices={state.vertices} color={myPlayerColor} />
+                            </g>
+                        )}
+                    </g>
                 );
             })}
 
@@ -54,16 +75,34 @@ export function BoardOverlay({ state, myPlayerId, onVertexClick, onEdgeClick, on
             {showVertexZones && state.vertices.map(vertex => {
                 if (vertex.building && (vertex.building.type === "city" || vertex.building.playerId !== myPlayerId)) return null;
                 const { x, y } = scaleCoords(vertex.x, vertex.y);
+                const isHovered = hoveredVertexId === vertex.id;
+
+                // If it already has a settlement, we are previewing a city upgrade
+                const isUpgradeToCity = vertex.building?.type === "settlement";
+
                 return (
-                    <circle
-                        key={`vert-${vertex.id}`}
-                        cx={x}
-                        cy={y}
-                        r={18}
-                        fill="transparent"
-                        className="hover:fill-white hover:fill-opacity-40 transition-all duration-200"
-                        onClick={() => onVertexClick(vertex.id)}
-                    />
+                    <g key={`vert-group-${vertex.id}`}>
+                        {/* Invisible circle purely for easy hovering */}
+                        <circle
+                            cx={x} cy={y}
+                            r={25}
+                            fill="transparent"
+                            onClick={() => onVertexClick(vertex.id)}
+                            onMouseEnter={() => setHoveredVertexId(vertex.id)}
+                            onMouseLeave={() => setHoveredVertexId(null)}
+                            style={{ cursor: "pointer" }}
+                        />
+                        {/* Ghost visual representation rendered ONLY when hovered */}
+                        {isHovered && (
+                            <g style={{ opacity: 0.6 }} className="animate-pulse pointer-events-none">
+                                {isUpgradeToCity ? (
+                                    <CityPiece vertex={vertex} color={myPlayerColor} />
+                                ) : (
+                                    <SettlementPiece vertex={vertex} color={myPlayerColor} />
+                                )}
+                            </g>
+                        )}
+                    </g>
                 );
             })}
         </g>

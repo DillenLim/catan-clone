@@ -35,6 +35,7 @@ export default class CatanRoom implements Party.Server {
             largestArmyPlayerId: null,
             largestArmyCount: 0,
             lastDiceRoll: null,
+            lastDistribution: null,
             pendingDiscarders: [],
             pendingTradeOffer: null,
             log: [],
