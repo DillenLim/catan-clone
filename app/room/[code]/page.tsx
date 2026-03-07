@@ -49,11 +49,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
     if (!gameState || !gameState.players.find(p => p.id === playerId)) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
-                    <h1 className="text-3xl font-black text-slate-800 mb-6">Join Room</h1>
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                <div className="max-w-md w-full glass-dark rounded-2xl shadow-2xl p-8 border border-white/10">
+                    <h1 className="text-3xl font-black text-white mb-6 tracking-tight">Join Room</h1>
                     {!isConnected ? (
-                        <div className="animate-pulse text-blue-600 font-bold mb-4">Connecting to server...</div>
+                        <div className="animate-pulse text-blue-400 font-bold mb-4">Connecting to server...</div>
                     ) : (
                         <form onSubmit={(e) => {
                             e.preventDefault();
@@ -62,27 +62,27 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             }
                         }} className="flex flex-col gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Display Name</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1 tracking-widest">Display Name</label>
                                 <input
                                     autoFocus
                                     type="text"
                                     value={playerName}
                                     onChange={e => setPlayerName(e.target.value)}
                                     maxLength={15}
-                                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full p-3 bg-black/30 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 text-white placeholder-white/20 font-medium"
                                     placeholder="Enter your name"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color</label>
-                                <div className="flex flex-wrap gap-2">
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 tracking-widest">Color</label>
+                                <div className="flex flex-wrap gap-3">
                                     {["#d94848", "#4e85d1", "#e08d38", "#f4f4f4", "#50a359", "#8a5c43", "#8950a3", "#d15e9e"].map(c => (
                                         <button
                                             type="button"
                                             key={c}
                                             onClick={() => setPlayerColor(c)}
-                                            className={`w-10 h-10 rounded-full border-2 transition-transform ${playerColor === c ? "border-slate-800 scale-110 shadow-md" : "border-slate-200 opacity-80"}`}
+                                            className={`w-10 h-10 rounded-full border-2 transition-transform ${playerColor === c ? "border-white scale-110 shadow-[0_0_15px_currentColor]" : "border-white/10 opacity-70 hover:opacity-100"}`}
                                             style={{ backgroundColor: c }}
                                         />
                                     ))}
@@ -103,7 +103,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
     if (gameState.status === "lobby") {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center">
+            <div className="min-h-screen bg-slate-900 flex flex-col items-center">
                 {error && <div className="fixed top-4 bg-red-500 text-white px-6 py-3 rounded shadow-lg font-bold z-50">{error}</div>}
                 <LobbyView state={gameState} myPlayerId={playerId} sendMessage={sendMessage} />
             </div>
