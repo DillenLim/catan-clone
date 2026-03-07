@@ -105,7 +105,7 @@ export interface GameState {
 
 // Client -> Server Messages
 export type GameAction =
-  | { type: "ROLL_DICE" }
+  | { type: "ROLL_DICE"; forcedRoll?: [number, number] }
   | { type: "MOVE_ROBBER"; hexId: number; stealFromPlayerId?: string }
   | { type: "DISCARD_CARDS"; cards: ResourceBundle }
   | { type: "BUILD_ROAD"; edgeId: number }

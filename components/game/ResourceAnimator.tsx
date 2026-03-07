@@ -39,12 +39,25 @@ export function ResourceAnimator({ state }: Props) {
                     // We'll spawn the particle centrally and animate it to the sidebar.
                     // The safest bet is finding the DOM elements directly to be window-resize resilient.
 
-                    const hexElement = document.getElementById(`hex-${dist.hexId}`);
+                    // 1. Get the actual SVG container bounds on screen
+                    const svgElement = document.querySelector('svg');
                     const playerElement = document.getElementById(`scoreboard-player-${dist.playerId}`);
+                    const hexElement = document.getElementById(`hex-${dist.hexId}`);
 
-                    if (hexElement && playerElement) {
-                        const hexRect = hexElement.getBoundingClientRect();
+                    if (svgElement && playerElement && hexElement) {
+                        const svgRect = svgElement.getBoundingClientRect();
                         const playerRect = playerElement.getBoundingClientRect();
+                        const hexRect = hexElement.getBoundingClientRect();
+
+                        // 2. The SVG might have internal viewBox scaling. 
+                        // For a centered burst, using the exact getBoundingClientRect of the <g> hex
+                        // works best *if* we find its true center on screen.
+                        const startX = hexRect.left + (hexRect.width / 2);
+                        const startY = hexRect.top + (hexRect.height / 2);
+
+                        // If startX/Y is way off scale (e.g. 0), fallback to center of SVG
+                        const finalStartX = startX > 0 ? startX : svgRect.left + (svgRect.width / 2);
+                        const finalStartY = startY > 0 ? startY : svgRect.top + (svgRect.height / 2);
 
                         // Create a particle for however many resources they got (cap at 3 to prevent lag)
                         const count = Math.min(dist.amount, 3);
@@ -57,15 +70,18 @@ export function ResourceAnimator({ state }: Props) {
                             else if (dist.resource === "ore") color = "#94a3b8";
                             else if (dist.resource === "wool") color = "#a3e635";
 
+                            // End coordinates: targeting the player's scoreboard bounding box
+                            const endX = playerRect.left + (playerRect.width / 2) + (Math.random() * 20 - 10);
+                            const endY = playerRect.top + (playerRect.height / 2) + (Math.random() * 20 - 10);
+
                             newParticles.push({
                                 id: `anim-${dist.hexId}-${dist.playerId}-${index}-${i}-${Date.now()}`,
                                 resource: dist.resource,
                                 // Add slight randomness so they burst outward
-                                startX: hexRect.left + (hexRect.width / 2) + (Math.random() * 40 - 20),
-                                startY: hexRect.top + (hexRect.height / 2) + (Math.random() * 40 - 20),
-                                // Target the resource pill specifically, or general player area
-                                endX: playerRect.left + 50 + (Math.random() * 20 - 10),
-                                endY: playerRect.top + 50 + (Math.random() * 20 - 10),
+                                startX: finalStartX + (Math.random() * 40 - 20),
+                                startY: finalStartY + (Math.random() * 40 - 20),
+                                endX,
+                                endY,
                                 color
                             });
                         }

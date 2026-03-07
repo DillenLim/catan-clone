@@ -10,6 +10,10 @@ export default class CatanRoom implements Party.Server {
     // Actually tracking deck order (hidden from clients)
     devCardDeckOrder: import("../lib/types").DevCardType[] = [];
 
+    // Balanced Dice tracking
+    diceDeck: number[] = [];
+    previousRolls: number[] = [];
+
     constructor(readonly room: Party.Room) {
         // Initialize default empty state
         this.gameState = this.createEmptyState(room.id);
@@ -143,6 +147,70 @@ export default class CatanRoom implements Party.Server {
         }
 
         if (msg.type === "ACTION") {
+            // Dice Deck Logic for Balanced Dice
+            if (msg.payload.type === "ROLL_DICE") {
+                if (!this.gameState.players.find(p => p.id === msg.playerId)) return;
+
+                // Initialize dice deck if empty
+                if (this.diceDeck.length === 0) {
+                    this.initDiceDeck();
+                }
+
+                // Reshuffle at 12 cards remaining (per Colonist balance stats)
+                if (this.diceDeck.length <= 12) {
+                    this.initDiceDeck();
+                }
+
+                let nextRollIndex = Math.floor(Math.random() * this.diceDeck.length);
+                let roll = this.diceDeck[nextRollIndex];
+
+                // 30% Streak Reduction: if this roll is the same as the last TWO rolls
+                if (this.previousRolls.length >= 2) {
+                    const last = this.previousRolls[this.previousRolls.length - 1];
+                    const prev = this.previousRolls[this.previousRolls.length - 2];
+
+                    if (roll === last && roll === prev) {
+                        // 30% chance to force a redraw
+                        if (Math.random() < 0.30) {
+                            // Pick a different card from the deck if possible
+                            const options = this.diceDeck.filter(r => r !== roll);
+                            if (options.length > 0) {
+                                const newSelection = options[Math.floor(Math.random() * options.length)];
+                                nextRollIndex = this.diceDeck.indexOf(newSelection);
+                                roll = newSelection;
+                            }
+                        }
+                    }
+                }
+
+                // Remove card from deck
+                this.diceDeck.splice(nextRollIndex, 1);
+
+                // Update history
+                this.previousRolls.push(roll);
+                if (this.previousRolls.length > 5) this.previousRolls.shift();
+
+                // Convert sum back to mock die1 + die2 for UI purposes
+                // (This doesn't have to be perfect, just needs to sum to `roll`)
+                let die1 = Math.floor(Math.random() * 6) + 1;
+                let die2 = roll - die1;
+                while (die2 < 1 || die2 > 6) {
+                    die1 = Math.floor(Math.random() * 6) + 1;
+                    die2 = roll - die1;
+                }
+
+                // Instead of passing ROLL_DICE to applyAction, we inject the specific roll result
+                // We'll add a helper property to the payload so applyAction uses it
+                const result = applyAction({ ...msg.payload, forcedRoll: [die1, die2] } as any, msg.playerId, this.gameState);
+                if (result.valid) {
+                    this.gameState = result.newState;
+                    this.broadcastState();
+                } else {
+                    sender.send(JSON.stringify({ type: "ERROR", message: result.error }));
+                }
+                return;
+            }
+
             // Intercept buying a dev card because it requires Server side deck manipulation
             if (msg.payload.type === "BUY_DEV_CARD") {
                 const player = this.gameState.players.find(p => p.id === msg.playerId);
@@ -223,5 +291,17 @@ export default class CatanRoom implements Party.Server {
                 }
             }
         }
+    }
+
+    private initDiceDeck() {
+        this.diceDeck = [];
+        // Generate the 36 combinations
+        for (let i = 1; i <= 6; i++) {
+            for (let j = 1; j <= 6; j++) {
+                this.diceDeck.push(i + j);
+            }
+        }
+        // Shuffle is technically optional since we pick randomly from the array,
+        // but it's good practice.
     }
 }
