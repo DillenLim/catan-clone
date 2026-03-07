@@ -1,4 +1,4 @@
-import { GameState, GameAction, DevCardType, ResourceBundle } from "../types";
+import { GameState, GameAction, ResourceBundle, ResourceType } from "../types";
 import { isValidPhase, isPlayerTurn, isValidSettlementPlacement, isValidRoadPlacement, isValidCityPlacement, canAfford, isValidRobberPlacement } from "./validation";
 import { distributeResources, getHarborRates } from "./resources";
 import { updateLongestRoad, updateLargestArmy } from "./roads";
@@ -193,31 +193,42 @@ export function applyAction(
         case "BANK_TRADE": {
             if (!canAfford(action.offer, newPlayer)) return { valid: false, error: "Cannot afford offer." };
 
-            const offeredTypes = Object.entries(action.offer).filter(([k, v]) => v && v > 0);
-            const requestedTypes = Object.entries(action.request).filter(([k, v]) => v && v > 0);
-
-            if (offeredTypes.length !== 1) return { valid: false, error: "Bank trade must offer exacly 1 type of resource." };
-
-            const [offeredRes, offeredAmt] = offeredTypes[0] as [keyof ResourceBundle, number];
-            const requestedAmt = requestedTypes.reduce((sum, [k, v]) => sum + (v as number), 0);
-
+            let totalEffectiveOffers = 0;
             const rates = getHarborRates(playerId, newState.vertices);
-            const effectiveRate = rates[offeredRes] || 4;
 
-            if (offeredAmt !== effectiveRate * requestedAmt) {
-                return { valid: false, error: `Invalid exchange rate to bank (need ${effectiveRate}:1).` };
+            for (const [res, amt] of Object.entries(action.offer)) {
+                if (!amt || amt <= 0) continue;
+                const rate = rates[res as ResourceType] || 4;
+                if (amt % rate !== 0) {
+                    return { valid: false, error: `Offered amount for ${res} must be a multiple of ${rate}.` };
+                }
+                totalEffectiveOffers += (amt / rate);
             }
 
-            // Apply trade
-            newPlayer.resources[offeredRes]! -= offeredAmt;
-            newState.bank[offeredRes]! += offeredAmt;
+            let totalRequestedAmt = 0;
+            for (const [res, amt] of Object.entries(action.request)) {
+                if (!amt || amt <= 0) continue;
+                totalRequestedAmt += amt;
+            }
 
-            for (const [res, amt] of requestedTypes) {
+            if (totalRequestedAmt === 0 || totalEffectiveOffers !== totalRequestedAmt) {
+                return { valid: false, error: `Invalid exchange match (Give equivalent: ${totalEffectiveOffers}, Get: ${totalRequestedAmt}).` };
+            }
+
+            // Apply trade deductions and grants
+            for (const [res, amt] of Object.entries(action.offer)) {
+                if (!amt || amt <= 0) continue;
+                newPlayer.resources[res as keyof ResourceBundle]! -= amt;
+                newState.bank[res as keyof ResourceBundle]! += amt;
+            }
+
+            for (const [res, amt] of Object.entries(action.request)) {
+                if (!amt || amt <= 0) continue;
                 newPlayer.resources[res as keyof ResourceBundle] = (newPlayer.resources[res as keyof ResourceBundle] || 0) + (amt as number);
                 newState.bank[res as keyof ResourceBundle]! -= (amt as number);
             }
 
-            newState.log.push({ timestamp: Date.now(), text: `traded with bank for ${requestedAmt} resources`, playerId });
+            newState.log.push({ timestamp: Date.now(), text: `traded with bank for ${totalRequestedAmt} resources`, playerId });
             break;
         }
 
@@ -380,8 +391,80 @@ export function applyAction(
             break;
         }
 
+        case "PLACE_INITIAL_ROAD":
+        case "PLACE_INITIAL_SETTLEMENT":
+            // Handled by specialized logic above
+            break;
+
+        case "OFFER_TRADE": {
+            const hasOffer = Object.entries(action.offer).some(([, v]) => (v || 0) > 0);
+            const hasRequest = Object.entries(action.request).some(([, v]) => (v || 0) > 0);
+            if (!hasOffer || !hasRequest) return { valid: false, error: "Must specify at least one resource to give and receive." };
+            if (!canAfford(action.offer, newPlayer)) return { valid: false, error: "Cannot afford to offer these resources." };
+
+            newState.pendingTradeOffer = {
+                id: `trade_${Date.now()}`,
+                fromPlayerId: playerId,
+                offer: action.offer,
+                request: action.request,
+            };
+            newState.log.push({ timestamp: Date.now(), text: "proposed a trade", playerId });
+            break;
+        }
+
+        case "ACCEPT_TRADE": {
+            const pending = newState.pendingTradeOffer;
+            if (!pending) return { valid: false, error: "No trade offer pending." };
+            if (pending.id !== action.offerId) return { valid: false, error: "Trade offer mismatch." };
+            if (pending.fromPlayerId === playerId) return { valid: false, error: "Cannot accept your own trade offer." };
+
+            const offeror = newState.players.find(p => p.id === pending.fromPlayerId);
+            if (!offeror) return { valid: false, error: "Offeror not found." };
+
+            // Check acceptor has what offeror requested
+            if (!canAfford(pending.request, newPlayer)) return { valid: false, error: "You do not have the requested resources." };
+            // Check offeror still has what they offered
+            if (!canAfford(pending.offer, offeror)) return { valid: false, error: "Offeror no longer has the offered resources." };
+
+            // Execute swap
+            for (const [res, amt] of Object.entries(pending.offer)) {
+                if (!amt || amt <= 0) continue;
+                offeror.resources[res as keyof ResourceBundle]! -= amt;
+                newPlayer.resources[res as keyof ResourceBundle] = (newPlayer.resources[res as keyof ResourceBundle] || 0) + amt;
+            }
+            for (const [res, amt] of Object.entries(pending.request)) {
+                if (!amt || amt <= 0) continue;
+                newPlayer.resources[res as keyof ResourceBundle]! -= amt;
+                offeror.resources[res as keyof ResourceBundle] = (offeror.resources[res as keyof ResourceBundle] || 0) + amt;
+            }
+
+            newState.pendingTradeOffer = null;
+            newState.log.push({ timestamp: Date.now(), text: `accepted ${offeror.name}'s trade`, playerId });
+            break;
+        }
+
+        case "CANCEL_TRADE": {
+            newState.pendingTradeOffer = null;
+            newState.log.push({ timestamp: Date.now(), text: "cancelled their trade offer", playerId });
+            break;
+        }
+
+        case "DEBUG_ADD_RESOURCES": {
+            for (const [res, amt] of Object.entries(action.resources)) {
+                if (amt && amt > 0) {
+                    const r = res as keyof ResourceBundle;
+                    newPlayer.resources[r] = (newPlayer.resources[r] || 0) + amt;
+                    if (newState.bank[r]) {
+                        newState.bank[r]! -= amt;
+                    }
+                }
+            }
+            newState.log.push({ timestamp: Date.now(), text: "used admin tools to add resources", playerId });
+            break;
+        }
+
         default:
-            return { valid: false, error: "Action not implemented yet." };
+            return { valid: false, error: "Action not recognized." };
     }
 
     // Double check win condition just in case (like after building)

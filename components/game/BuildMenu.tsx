@@ -1,7 +1,7 @@
 import React from "react";
-import { GameState, GameAction, ResourceType } from "../../lib/types";
+import { GameState, GameAction } from "../../lib/types";
 import { canAfford } from "../../lib/game-logic/validation";
-import { Hammer, TreePine, BrickWall, Sparkles, Wheat, Mountain, GraduationCap } from "lucide-react";
+import { Hammer, TreePine, BrickWall, Cloud, Wheat, Mountain, GraduationCap } from "lucide-react";
 
 interface Props {
     state: GameState;
@@ -12,11 +12,11 @@ interface Props {
 }
 
 const ICON_MAP = {
-    wood: <TreePine size={12} className="text-emerald-400" />,
-    brick: <BrickWall size={12} className="text-orange-400" />,
-    wool: <Sparkles size={12} className="text-zinc-200" />,
-    wheat: <Wheat size={12} className="text-amber-300" />,
-    ore: <Mountain size={12} className="text-slate-400" />
+    wood: <TreePine size={16} className="text-emerald-400" />,
+    brick: <BrickWall size={16} className="text-orange-400" />,
+    wool: <Cloud size={16} className="text-lime-400" />,
+    wheat: <Wheat size={16} className="text-amber-300" />,
+    ore: <Mountain size={16} className="text-slate-400" />
 };
 
 export function BuildMenu({ state, myPlayerId, onDispatch, onSetPlacementMode, placementMode }: Props) {
@@ -55,13 +55,8 @@ export function BuildMenu({ state, myPlayerId, onDispatch, onSetPlacementMode, p
     const canBuyDevCard = canAfford(devCardCost, me) && state.devCardDeckCount > 0 && isMyTurn;
 
     return (
-        <div className="glass-dark rounded-3xl p-6 shadow-2xl border-t border-white/10">
-            <div className="flex items-center gap-2 mb-6">
-                <Hammer size={18} className="text-blue-400" />
-                <h2 className="font-outfit font-black text-white/90 text-sm uppercase tracking-[0.2em]">Build Menu</h2>
-            </div>
-
-            <div className="flex flex-col gap-3">
+        <div className="glass-dark rounded-2xl p-2 shadow-xl border border-white/5">
+            <div className="grid grid-cols-2 gap-1.5">
                 {buildOptions.map(opt => {
                     const affordable = canAfford(opt.cost, me);
                     const belowLimit = opt.built < opt.limit;
@@ -73,31 +68,28 @@ export function BuildMenu({ state, myPlayerId, onDispatch, onSetPlacementMode, p
                             key={opt.type}
                             onClick={() => onSetPlacementMode(opt.type)}
                             disabled={disabled && !isActive}
-                            className={`group relative flex flex-col p-4 rounded-2xl border-2 transition-all duration-300 overflow-hidden ${isActive
-                                    ? "border-blue-500 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
-                                    : disabled
-                                        ? "border-white/5 bg-white/2 opacity-30 grayscale cursor-not-allowed"
-                                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                            className={`relative flex flex-col p-2 rounded-xl border transition-all duration-300 ${isActive
+                                ? "border-blue-500 bg-blue-500/10 shadow-lg"
+                                : disabled
+                                    ? "border-white/5 bg-white/2 opacity-30 grayscale cursor-not-allowed"
+                                    : "border-white/10 bg-white/5 hover:border-white/20"
                                 }`}
                         >
-                            <div className="flex justify-between items-center w-full z-10">
-                                <span className={`font-outfit font-black text-lg ${isActive ? 'text-blue-400' : 'text-white/80'}`}>{opt.label}</span>
-                                <span className="text-[10px] font-black font-mono text-white/30 bg-black/40 px-2 py-0.5 rounded-full">
+                            <div className="flex justify-between items-center w-full mb-2">
+                                <span className={`font-outfit font-black text-sm uppercase tracking-tight ${isActive ? 'text-blue-400' : 'text-white/60'}`}>{opt.label}</span>
+                                <span className="text-xs font-black font-mono text-white/40">
                                     {opt.built}/{opt.limit}
                                 </span>
                             </div>
 
-                            <div className="flex gap-2 mt-2 z-10">
+                            <div className="flex gap-2">
                                 {Object.entries(opt.cost).map(([res, amt]) => (
-                                    <div key={res} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/10 shadow-inner">
+                                    <div key={res} className="flex items-center gap-1 opacity-90">
                                         {ICON_MAP[res as keyof typeof ICON_MAP]}
-                                        <span className="text-[11px] font-black text-white/60">{amt}</span>
+                                        <span className="text-xs font-black text-white/60">{amt}</span>
                                     </div>
                                 ))}
                             </div>
-
-                            {/* Active Glow Indicator */}
-                            {isActive && <div className="absolute inset-0 bg-blue-500/5 animate-pulse" />}
                         </button>
                     )
                 })}
@@ -105,29 +97,26 @@ export function BuildMenu({ state, myPlayerId, onDispatch, onSetPlacementMode, p
                 <button
                     onClick={() => onDispatch({ type: "BUY_DEV_CARD" })}
                     disabled={!canBuyDevCard}
-                    className={`group relative flex flex-col p-4 rounded-2xl border-2 transition-all duration-300 ${!canBuyDevCard
-                            ? "border-white/5 bg-white/2 opacity-30 grayscale cursor-not-allowed"
-                            : "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/50 shadow-lg hover:shadow-purple-500/10"
+                    className={`relative flex flex-col p-2 rounded-xl border transition-all duration-300 ${!canBuyDevCard
+                        ? "border-white/5 bg-white/2 opacity-30 grayscale cursor-not-allowed"
+                        : "border-purple-500/30 bg-purple-500/5 hover:border-purple-500/50 shadow-lg"
                         }`}
                 >
-                    <div className="flex justify-between items-center w-full z-10">
-                        <div className="flex items-center gap-2">
-                            <GraduationCap size={18} className="text-purple-400" />
-                            <span className="font-outfit font-black text-lg text-white/80">Dev Card</span>
+                    <div className="flex justify-between items-center w-full mb-2">
+                        <div className="flex items-center gap-1.5">
+                            <GraduationCap size={16} className="text-purple-400" />
+                            <span className="font-outfit font-black text-sm uppercase tracking-tight text-white/60">Dev Card</span>
                         </div>
-                        <span className="text-[10px] font-black font-mono text-purple-300/40 bg-purple-900/40 px-2 py-0.5 rounded-full">
-                            {state.devCardDeckCount} left
+                        <span className="text-xs font-black font-mono text-white/40">
+                            {state.devCardDeckCount}
                         </span>
                     </div>
-                    <div className="flex gap-2 mt-2 z-10">
-                        {[
-                            { res: "wool", amt: 1 },
-                            { res: "wheat", amt: 1 },
-                            { res: "ore", amt: 1 }
-                        ].map(({ res, amt }) => (
-                            <div key={res} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/10 shadow-inner">
+
+                    <div className="flex gap-2">
+                        {Object.entries(devCardCost).map(([res, amt]) => (
+                            <div key={res} className="flex items-center gap-1 opacity-90">
                                 {ICON_MAP[res as keyof typeof ICON_MAP]}
-                                <span className="text-[11px] font-black text-white/60">{amt}</span>
+                                <span className="text-xs font-black text-white/60">{amt}</span>
                             </div>
                         ))}
                     </div>

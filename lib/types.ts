@@ -121,7 +121,8 @@ export type GameAction =
   | { type: "CANCEL_TRADE" }
   | { type: "END_TURN" }
   | { type: "PLACE_INITIAL_SETTLEMENT"; vertexId: number }
-  | { type: "PLACE_INITIAL_ROAD"; edgeId: number };
+  | { type: "PLACE_INITIAL_ROAD"; edgeId: number }
+  | { type: "DEBUG_ADD_RESOURCES"; resources: ResourceBundle };
 
 export type ClientMessagePayload =
   | { type: "JOIN"; player: { name: string; color: string } }

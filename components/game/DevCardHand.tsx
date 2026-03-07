@@ -34,29 +34,29 @@ export function DevCardHand({ state, myPlayerId, onPlayDevCard }: Props) {
     }, {} as Record<DevCardType, number>);
 
     return (
-        <div className="bg-white rounded-xl shadow p-4 border border-slate-200">
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-3">Development Cards</h2>
+        <div className="glass-dark rounded-2xl shadow-xl p-3 border border-white/5">
+            <h2 className="font-outfit font-black text-white/50 text-xs uppercase tracking-widest mb-3 px-1.5">Development Cards</h2>
 
             {myCards.length === 0 ? (
-                <div className="text-slate-400 text-sm italic py-4 text-center">No development cards</div>
+                <div className="text-white/20 text-[10px] italic py-2 text-center">No cards held</div>
             ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                     {(Object.entries(groupedCards) as [DevCardType, number][]).map(([type, count]) => (
-                        <div key={type} className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg p-2">
-                            <div className="flex items-center gap-2 text-purple-900">
-                                {DEVCARD_INFO[type].icon}
+                        <div key={type} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-1.5 pl-2">
+                            <div className="flex items-center gap-2 text-white/80">
+                                {React.cloneElement(DEVCARD_INFO[type].icon as React.ReactElement, { size: 14, className: "text-purple-400" })}
                                 <div className="flex flex-col">
-                                    <span className="text-xs font-bold leading-none">{DEVCARD_INFO[type].label}</span>
-                                    <span className="text-[10px] text-purple-600">x{count}</span>
+                                    <span className="text-xs font-black leading-none uppercase tracking-tighter">{DEVCARD_INFO[type].label}</span>
+                                    <span className="text-[10px] text-white/40 font-bold mt-0.5">x{count}</span>
                                 </div>
                             </div>
                             {type !== "victory_point" && (
                                 <button
                                     onClick={() => onPlayDevCard(type)}
-                                    disabled={!canPlay || (me.newDevCardThisTurn && myCards.length === count)} // Simplified lock check
-                                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white rounded text-xs font-bold transition-colors"
+                                    disabled={!canPlay || (me.newDevCardThisTurn && myCards.length === count)}
+                                    className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-600 disabled:bg-white/5 disabled:text-white/10 text-white rounded-lg text-xs font-black transition-all"
                                 >
-                                    Play
+                                    PLAY
                                 </button>
                             )}
                         </div>

@@ -13,8 +13,10 @@ import { DevCardHand } from "../../../components/game/DevCardHand";
 import { BuildMenu } from "../../../components/game/BuildMenu";
 import { TradePanel } from "../../../components/game/TradePanel";
 import { GameLog } from "../../../components/game/GameLog";
+import { BankDisplay } from "../../../components/game/BankDisplay";
 import { DiscardModal } from "../../../components/ui/DiscardModal";
 import { DevCardModal } from "../../../components/ui/DevCardModal";
+import { DebugControls } from "../../../components/game/DebugControls";
 import { DevCardType, ResourceBundle } from "../../../lib/types";
 
 export default function RoomPage({ params }: { params: { code: string } }) {
@@ -36,6 +38,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     const [pendingDevCard, setPendingDevCard] = useState<"knight" | "road_building" | null>(null);
     // For road building: first edge already placed
     const [roadBuildingEdge1, setRoadBuildingEdge1] = useState<number | null>(null);
+
+    const [showDebug, setShowDebug] = useState(false);
 
     if (!playerId) return null;
 
@@ -202,7 +206,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
 
     return (
-        <div className="min-h-screen relative flex p-4 lg:p-10 gap-6 flex-col lg:flex-row font-inter antialiased overflow-hidden">
+        <div className="h-screen w-screen relative flex p-2 lg:p-4 gap-4 flex-col lg:flex-row font-inter antialiased overflow-hidden">
             {/* Immersive Ocean Background */}
             <div className="ocean-bg" />
             <div className="ocean-wave opacity-50" style={{ animationDelay: "-2s" }} />
@@ -252,36 +256,36 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             )}
 
             {/* ── MAIN BOARD COLUMN ── */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-[3] flex flex-col min-w-0 overflow-hidden h-full">
 
                 {/* Status Bar */}
-                <div className="glass-dark p-6 rounded-3xl shadow-2xl border-t border-white/5 mb-6 flex justify-between items-center">
+                <div className="glass-dark p-3 lg:p-4 rounded-2xl shadow-xl border border-white/5 mb-2 flex-shrink-0 flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Room Code</span>
-                            <span className="font-outfit font-black text-2xl text-white tracking-tighter leading-none">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Room Code</span>
+                            <span className="font-outfit font-black text-xl text-white tracking-tighter leading-none">
                                 {gameState.roomCode}
                             </span>
                         </div>
-                        <div className="w-[1px] h-8 bg-white/10 mx-2" />
+                        <div className="w-[1px] h-6 bg-white/10 mx-1" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Current Phase</span>
-                            <span className="font-outfit font-black text-xl text-white/80 leading-none">
+                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-0.5">Phase</span>
+                            <span className="font-outfit font-black text-lg text-white/80 leading-none">
                                 {gameState.phase.replace(/_/g, " ").toUpperCase()}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4">
                         {gameState.currentPlayerId === playerId ? (
-                            <div className="flex items-center gap-3 bg-green-500/10 px-4 py-2 rounded-2xl border border-green-500/20">
-                                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                                <span className="font-outfit font-black text-green-400 tracking-wide">YOUR TURN</span>
+                            <div className="flex items-center gap-2.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                <span className="font-outfit font-black text-[12px] text-green-400 tracking-wide">YOUR TURN</span>
                             </div>
                         ) : (
                             <div className="flex flex-col items-end">
-                                <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Waiting For</span>
-                                <span className="font-outfit font-black text-white/60 tracking-tight">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-0.5">Turn</span>
+                                <span className="font-outfit font-black text-[14px] text-white/60 tracking-tight">
                                     {gameState.players.find(p => p.id === gameState.currentPlayerId)?.name.toUpperCase()}
                                 </span>
                             </div>
@@ -289,7 +293,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         {gameState.currentPlayerId === playerId && gameState.phase === "action" && (
                             <button
                                 onClick={() => dispatchAction({ type: "END_TURN" })}
-                                className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-outfit font-black rounded-2xl transition-all border-b-4 border-red-800 active:border-b-0 active:translate-y-1 shadow-lg shadow-red-900/40"
+                                className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-outfit font-black text-xs rounded-xl transition-all border-b-2 border-red-800 active:border-b-0 active:translate-y-0.5 shadow-md"
                             >
                                 END TURN
                             </button>
@@ -297,8 +301,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     </div>
                 </div>
 
-                {/* Board */}
-                <div className="flex-1 flex items-center justify-center p-4">
+                {/* Board Container - Strictly proportional */}
+                <div className="flex-[4] relative flex items-center justify-center min-h-0 overflow-hidden text-center w-full">
                     <HexBoard
                         gameState={gameState}
                         myPlayerId={playerId}
@@ -308,30 +312,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     />
                 </div>
 
-                {/* Resource Hand (bottom) */}
-                <div className="mt-4">
-                    <ResourceHand state={gameState} myPlayerId={playerId} />
+                {/* Bottom Bar: Trade | Hand | Dice */}
+                <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 gap-4">
+                    <div className="flex-shrink-0 flex items-center">
+                        <TradePanel state={gameState} myPlayerId={playerId} onDispatch={dispatchAction} />
+                    </div>
+                    <div className="flex-1 flex justify-center items-center">
+                        <ResourceHand state={gameState} myPlayerId={playerId} />
+                    </div>
+                    <div className="flex-shrink-0 flex items-center">
+                        <DiceDisplay state={gameState} myPlayerId={playerId} onRoll={() => dispatchAction({ type: "ROLL_DICE" })} />
+                    </div>
                 </div>
             </div>
 
             {/* ── RIGHT SIDEBAR ── */}
-            <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto max-h-[100vh]">
-                <PlayerScoreboard state={gameState} myPlayerId={playerId} />
-                <DiceDisplay state={gameState} myPlayerId={playerId} onRoll={() => dispatchAction({ type: "ROLL_DICE" })} />
-                <BuildMenu
-                    state={gameState}
-                    myPlayerId={playerId}
-                    onDispatch={dispatchAction}
-                    onSetPlacementMode={setPlacementMode}
-                    placementMode={placementMode}
-                />
-                <TradePanel state={gameState} myPlayerId={playerId} onDispatch={dispatchAction} />
-                <DevCardHand
-                    state={gameState}
-                    myPlayerId={playerId}
-                    onPlayDevCard={(type) => setDevCardModal(type)}
-                />
-                <GameLog log={gameState.log} players={gameState.players} />
+            <div className="flex-1 w-full flex-shrink-0 flex flex-col gap-3 overflow-y-auto max-h-full pr-1">
+                <div className="flex-shrink-0"><PlayerScoreboard state={gameState} myPlayerId={playerId} /></div>
+                <div className="flex-shrink-0">
+                    <BuildMenu
+                        state={gameState}
+                        myPlayerId={playerId}
+                        onDispatch={dispatchAction}
+                        onSetPlacementMode={setPlacementMode}
+                        placementMode={placementMode}
+                    />
+                </div>
+
+                <div className="flex-shrink-0">
+                    <DevCardHand
+                        state={gameState}
+                        myPlayerId={playerId}
+                        onPlayDevCard={(type) => setDevCardModal(type)}
+                    />
+                </div>
+                <div className="flex-shrink-0"><BankDisplay state={gameState} /></div>
+                <div className="flex-shrink-0"><GameLog log={gameState.log} players={gameState.players} /></div>
+                <button
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="mt-auto flex-shrink-0 opacity-20 hover:opacity-100 transition-opacity text-[10px] text-white/50 uppercase tracking-widest font-black py-2"
+                >
+                    {showDebug ? "Hide Admin" : "Show Admin"}
+                </button>
+                {showDebug && <div className="flex-shrink-0"><DebugControls state={gameState} onDispatch={dispatchAction} /></div>}
             </div>
 
         </div>

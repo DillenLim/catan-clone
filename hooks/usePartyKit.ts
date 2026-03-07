@@ -16,7 +16,8 @@ export function usePartyKit(roomCode: string, playerId: string | null) {
         const socket = new PartySocket({
             host,
             room: roomCode,
-            query: { playerId } // can pass info on connect if needed
+            id: playerId, // Explicitly set ID to match playerId for server-side sanitization
+            query: { playerId }
         });
 
         socketRef.current = socket;

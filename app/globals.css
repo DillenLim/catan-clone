@@ -42,11 +42,18 @@ body {
   }
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .ocean-bg {
   position: fixed;
-  inset: -20%;
-  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-  z-index: -1;
+  inset: 0;
+  z-index: -10;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  overflow: hidden;
 }
 
 .ocean-wave {

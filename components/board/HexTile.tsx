@@ -1,6 +1,7 @@
 import React from "react";
 import { HexType } from "../../lib/types";
 import { hexCorners } from "./math";
+import { TreePine, Wheat, Mountain, BrickWall, Cloud } from "lucide-react";
 
 interface Props {
     q: number;
@@ -17,50 +18,40 @@ const colors: Record<HexType, { from: string; to: string; icon: React.ReactNode 
     forest: {
         from: "#2d5a27", to: "#4a7c59",
         icon: (
-            <g opacity="0.4">
-                <path d="M0 -20 L10 0 L-10 0 Z" fill="#1a3a17" />
-                <path d="M-8 -10 L2 10 L-18 10 Z" fill="#1a3a17" transform="translate(10, 5)" />
-                <path d="M-8 -10 L2 10 L-18 10 Z" fill="#1a3a17" transform="translate(-5, 8)" />
+            <g transform="translate(-16, -16)" opacity="0.4">
+                <TreePine size={32} color="#1a3a17" strokeWidth={2} />
             </g>
         )
     },
     field: {
         from: "#b8860b", to: "#d4a843",
         icon: (
-            <g opacity="0.5" stroke="#8b4513" strokeWidth="1" fill="none">
-                <path d="M-15 -10 L-15 10 M-5 -10 L-5 10 M5 -10 L5 10 M15 -10 L15 10" />
-                <path d="M-20 -5 L20 -5 M-20 5 L20 5" opacity="0.3" />
+            <g transform="translate(-16, -16)" opacity="0.5">
+                <Wheat size={32} color="#8b4513" strokeWidth={2} />
             </g>
         )
     },
     mountain: {
         from: "#4a4a58", to: "#7a7a8a",
         icon: (
-            <g opacity="0.4">
-                <path d="M-20 15 L0 -15 L20 15 Z" fill="#2a2a35" />
-                <path d="M-10 15 L5 -5 L20 15 Z" fill="#3a3a45" transform="translate(-10, 5)" />
+            <g transform="translate(-16, -16)" opacity="0.4">
+                <Mountain size={32} color="#2a2a35" strokeWidth={2} />
             </g>
         )
     },
     pasture: {
         from: "#558b2f", to: "#8dc34b",
         icon: (
-            <g opacity="0.4" fill="white">
-                <circle cx="-10" cy="-5" r="3" />
-                <circle cx="-7" cy="-7" r="3" />
-                <circle cx="-13" cy="-7" r="3" />
-                <circle cx="10" cy="5" r="3" />
-                <circle cx="13" cy="3" r="3" />
-                <circle cx="7" cy="3" r="3" />
+            <g transform="translate(-16, -16)" opacity="0.4">
+                <Cloud size={32} color="#ffffff" strokeWidth={2} />
             </g>
         )
     },
     hill: {
-        from: "#8d4a27", to: "#c06b3a",
+        from: "#b91c1c", to: "#dc2626", // red-700 to red-600
         icon: (
-            <g opacity="0.4">
-                <path d="M-20 10 Q0 -20 20 10" fill="#5a2a17" />
-                <path d="M-10 15 Q10 -15 30 15" fill="#6a3a27" transform="translate(-15, 5)" />
+            <g transform="translate(-16, -16)" opacity="0.4">
+                <BrickWall size={32} color="#450a0a" strokeWidth={2} />
             </g>
         )
     },
@@ -110,7 +101,7 @@ export function HexTile({ type, cx, cy, size, numberToken, hasRobber }: Props) {
             />
 
             {/* Background Iconography */}
-            <g transform={`translate(${cx}, ${cy})`}>
+            <g transform={`translate(${cx}, ${cy - 16}) scale(1.3)`}>
                 {icon}
             </g>
 
@@ -123,18 +114,18 @@ export function HexTile({ type, cx, cy, size, numberToken, hasRobber }: Props) {
             />
 
             {numberToken && typeof numberToken === 'number' && (
-                <g transform={`translate(${cx}, ${cy})`}>
+                <g transform={`translate(${cx}, ${cy + 22})`}>
                     <circle
-                        cx="0" cy="0" r="18"
+                        cx="0" cy="0" r="15"
                         fill="white"
                         fillOpacity="0.9"
                         className="drop-shadow-md"
                     />
                     <text
                         x="0"
-                        y="5"
+                        y="4"
                         textAnchor="middle"
-                        fontSize="16"
+                        fontSize="14"
                         fontWeight="900"
                         fill={isRed ? "#d94848" : "#2a2a2a"}
                         style={{ fontFamily: 'var(--font-outfit), system-ui, sans-serif' }}
@@ -142,7 +133,7 @@ export function HexTile({ type, cx, cy, size, numberToken, hasRobber }: Props) {
                         {numberToken}
                     </text>
                     {/* Probability dots underneath */}
-                    <g transform={`translate(0, 12)`}>
+                    <g transform={`translate(0, 10)`}>
                         {Array.from({ length: getDotsCount(numberToken) }).map((_, i, arr) => (
                             <circle
                                 key={i}
@@ -157,7 +148,7 @@ export function HexTile({ type, cx, cy, size, numberToken, hasRobber }: Props) {
             )}
 
             {hasRobber && (
-                <g transform={`translate(${cx}, ${cy + (numberToken ? -25 : 0)})`}>
+                <g transform={`translate(${cx}, ${cy + 22})`}>
                     <circle cx="0" cy="0" r="22" fill="#1a1a1a" opacity="0.9" />
                     <text x="0" y="7" textAnchor="middle" fontSize="20">🥷</text>
                 </g>

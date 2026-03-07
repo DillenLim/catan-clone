@@ -17,25 +17,25 @@ export function GameLog({ log, players }: Props) {
     }, [log.length]);
 
     return (
-        <div className="bg-white rounded-xl shadow border border-slate-200 flex flex-col h-48">
-            <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 rounded-t-xl font-bold text-slate-800 text-sm tracking-wider uppercase">
+        <div className="glass-dark rounded-2xl shadow-xl border border-white/5 flex flex-col h-[100px]">
+            <div className="px-3 py-1 border-b border-white/5 bg-white/5 rounded-t-2xl font-outfit font-black text-white/40 text-[8px] tracking-widest uppercase">
                 Game Log
             </div>
             <div
                 ref={containerRef}
-                className="flex-1 p-4 overflow-y-auto flex flex-col gap-1 text-sm font-medium"
+                className="flex-1 p-3 overflow-y-auto flex flex-col gap-1 text-[11px] font-medium scrollbar-thin scrollbar-thumb-white/10"
             >
                 {log.map((entry, idx) => {
                     const p = players.find(x => x.id === entry.playerId);
                     return (
-                        <div key={idx} className="flex gap-2 leading-tight">
+                        <div key={idx} className="flex gap-1.5 leading-tight">
                             {p ? (
                                 <>
-                                    <span style={{ color: p.color }} className="font-bold flex-shrink-0">{p.name}</span>
-                                    <span className="text-slate-600">{entry.text}</span>
+                                    <span style={{ color: p.color }} className="font-black flex-shrink-0 opacity-90">{p.name}</span>
+                                    <span className="text-white/70">{entry.text}</span>
                                 </>
                             ) : (
-                                <span className="text-slate-500 italic">Game: {entry.text}</span>
+                                <span className="text-white/40 italic">Game: {entry.text}</span>
                             )}
                         </div>
                     );

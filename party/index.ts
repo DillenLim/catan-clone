@@ -121,7 +121,7 @@ export default class CatanRoom implements Party.Server {
             }
 
             // Initialize Board
-            const { hexes, vertices, edges } = generateBoard(this.gameState.settings.boardLayout);
+            const { hexes, vertices, edges } = generateBoard();
             this.gameState.hexes = hexes;
             this.gameState.vertices = vertices;
             this.gameState.edges = edges;
