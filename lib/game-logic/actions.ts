@@ -32,13 +32,8 @@ export function applyAction(
 
     switch (action.type) {
         case "ROLL_DICE": {
-            let die1, die2;
-            if ("forcedRoll" in action && action.forcedRoll) {
-                [die1, die2] = action.forcedRoll;
-            } else {
-                die1 = Math.floor(Math.random() * 6) + 1;
-                die2 = Math.floor(Math.random() * 6) + 1;
-            }
+            const die1 = Math.floor(Math.random() * 6) + 1;
+            const die2 = Math.floor(Math.random() * 6) + 1;
             const roll = die1 + die2;
             newState.lastDiceRoll = [die1, die2];
 
