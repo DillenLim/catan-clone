@@ -168,38 +168,65 @@ export default function TesterPage() {
                     />
                 </div>
 
-                {/* Bottom Bar: Trade | Hand | Dice */}
-                <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 gap-4">
-                    <div className="flex-shrink-0 flex items-center">
-                        <TradePanel state={gameState} myPlayerId={playerId} onDispatch={dispatchAction} />
+                {/* Bottom Bar: Trade | Hand | DevCard | Dice + End Turn */}
+                <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 gap-8 bg-black/40 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+
+                    {/* Left & Middle Group: Trade + Resources + DevCards */}
+                    <div className="flex-1 flex items-center gap-6">
+                        <div className="flex-shrink-0">
+                            <TradePanel state={gameState} myPlayerId={playerId} onDispatch={dispatchAction} />
+                        </div>
+
+                        <div className="h-10 w-[1px] bg-white/10 hidden lg:block" />
+
+                        <div className="flex-shrink-0">
+                            <ResourceHand state={gameState} myPlayerId={playerId} />
+                        </div>
+
+                        <div className="h-10 w-[1px] bg-white/10 hidden lg:block" />
+
+                        <div className="flex-1 max-w-2xl">
+                            <DevCardHand
+                                state={gameState}
+                                myPlayerId={playerId}
+                                onPlayDevCard={() => { }}
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1 flex justify-center items-center">
-                        <ResourceHand state={gameState} myPlayerId={playerId} />
-                    </div>
-                    <div className="flex-shrink-0 flex items-center">
+
+                    {/* Right Group: Dice + Actions */}
+                    <div className="flex-shrink-0 flex items-center gap-4">
                         <DiceDisplay state={gameState} myPlayerId={playerId} onRoll={handleRoll} />
+
+                        {gameState.currentPlayerId === playerId && gameState.phase === "action" && (
+                            <button
+                                onClick={() => dispatchAction({ type: "END_TURN" })}
+                                className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-outfit font-black text-sm rounded-2xl transition-all border-b-4 border-red-800 active:border-b-0 active:translate-y-1 shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-in fade-in zoom-in-95 duration-200 uppercase tracking-widest"
+                            >
+                                End Turn
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* ── RIGHT SIDEBAR ── */}
-            <div className="flex-1 w-full flex-shrink-0 flex flex-col gap-3 overflow-y-auto max-h-full pr-1">
-                <PlayerScoreboard state={gameState} myPlayerId={playerId} />
-                <BuildMenu
-                    state={gameState}
-                    myPlayerId={playerId}
-                    onDispatch={dispatchAction}
-                    onSetPlacementMode={() => { }}
-                    placementMode={null}
-                />
+            <div className="flex-1 w-full flex-shrink-0 flex flex-col gap-3 overflow-hidden max-h-full pr-1">
+                <div className="flex-1 flex flex-col min-h-0"><GameLog log={gameState.log} players={gameState.players} /></div>
 
-                <DevCardHand
-                    state={gameState}
-                    myPlayerId={playerId}
-                    onPlayDevCard={() => { }}
-                />
-                <BankDisplay state={gameState} />
-                <GameLog log={gameState.log} players={gameState.players} />
+                <div className="flex-shrink-0"><PlayerScoreboard state={gameState} myPlayerId={playerId} /></div>
+
+                <div className="flex-shrink-0"><BankDisplay state={gameState} /></div>
+
+                <div className="flex-shrink-0 overflow-y-auto min-h-0">
+                    <BuildMenu
+                        state={gameState}
+                        myPlayerId={playerId}
+                        onDispatch={dispatchAction}
+                        onSetPlacementMode={() => { }}
+                        placementMode={null}
+                    />
+                </div>
                 <button
                     onClick={() => setShowDebug(!showDebug)}
                     className="mt-auto flex-shrink-0 opacity-20 hover:opacity-100 transition-opacity text-[10px] text-white/50 uppercase tracking-widest font-black py-2"

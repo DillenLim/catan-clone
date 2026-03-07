@@ -17,7 +17,7 @@ export function GameLog({ log, players }: Props) {
     }, [log.length]);
 
     return (
-        <div className="glass-dark rounded-2xl shadow-xl border border-white/5 flex flex-col h-[100px]">
+        <div className="glass-dark rounded-2xl shadow-xl border border-white/5 flex flex-col h-full min-h-[150px]">
             <div className="px-3 py-1 border-b border-white/5 bg-white/5 rounded-t-2xl font-outfit font-black text-white/40 text-[8px] tracking-widest uppercase">
                 Game Log
             </div>

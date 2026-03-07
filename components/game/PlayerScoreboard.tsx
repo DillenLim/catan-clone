@@ -1,6 +1,6 @@
 import React from "react";
 import { GameState } from "../../lib/types";
-import { Crown, Shield, Activity, Users, Layout } from "lucide-react";
+import { Crown, Activity, Users, Package, Layers } from "lucide-react";
 
 interface Props {
     state: GameState;
@@ -36,7 +36,7 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                         <div
                             key={p.id}
                             className={`flex flex-col p-3 rounded-xl border transition-all duration-300 ${isCurrent
-                                ? "border-blue-500 bg-blue-500/10 shadow-lg scale-[1.02]"
+                                ? "border-green-500 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-[1.02]"
                                 : "border-white/5 bg-white/5"
                                 }`}
                         >
@@ -50,21 +50,21 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                                         {p.name} {isMe && <span className="text-[9px] opacity-60 ml-2">YOU</span>}
                                     </span>
                                 </div>
-                                {isCurrent && <Activity size={14} className="text-blue-400 animate-pulse flex-shrink-0" />}
+                                {isCurrent && <Activity size={14} className="text-green-400 animate-pulse flex-shrink-0" />}
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/20 border border-white/5">
-                                    <Crown size={14} className="text-yellow-400" />
-                                    <span className="text-[13px] font-black text-white/90 font-mono">{vp}</span>
+                            <div className="flex items-center gap-3 mt-1.5">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20" title="Victory Points">
+                                    <Crown size={18} className="text-yellow-400" />
+                                    <span className="text-[16px] font-black text-yellow-100 font-mono leading-none">{vp}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/20 border border-white/5 opacity-70">
-                                    <Layout size={14} className="text-blue-400" strokeWidth={2.5} />
-                                    <span className="text-[13px] font-black text-white/80 font-mono">{resCount}</span>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20" title="Resources">
+                                    <Package size={18} className="text-blue-400" />
+                                    <span className="text-[16px] font-black text-blue-100 font-mono leading-none">{resCount}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/20 border border-white/5 opacity-70">
-                                    <Shield size={14} className="text-purple-400" strokeWidth={2.5} />
-                                    <span className="text-[13px] font-black text-white/80 font-mono">{devCount}</span>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20" title="Development Cards">
+                                    <Layers size={18} className="text-purple-400" />
+                                    <span className="text-[16px] font-black text-purple-100 font-mono leading-none">{devCount}</span>
                                 </div>
                             </div>
                         </div>
