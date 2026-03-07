@@ -30,6 +30,12 @@ export function applyAction(
     const newState = JSON.parse(JSON.stringify(state)) as GameState;
     const newPlayer = newState.players.find(p => p.id === playerId)!;
 
+    // Clear distribution payload immediately.
+    // The ONLY time this should be populated is exactly on the ROLL_DICE action 
+    // when resources actually distribute. This prevents stale array data from
+    // forcing the React <ResourceAnimator> to replay on arbitrary state updates.
+    newState.lastDistribution = null;
+
     switch (action.type) {
         case "ROLL_DICE": {
             const die1 = Math.floor(Math.random() * 6) + 1;
@@ -248,9 +254,6 @@ export function applyAction(
                 const pIdx = newState.turnOrder.indexOf(playerId);
                 newState.currentPlayerId = newState.turnOrder[(pIdx + 1) % newState.turnOrder.length];
                 newState.phase = "roll";
-
-                // Clear the distribution array so animations don't replay on the next player's initial load
-                newState.lastDistribution = null;
 
                 newState.log.push({ timestamp: Date.now(), text: `turn ended. It's now ${newState.players.find(p => p.id === newState.currentPlayerId)?.name}'s turn.`, playerId });
             }

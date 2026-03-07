@@ -25,7 +25,6 @@ export function DevCardHand({ state, myPlayerId, onPlayDevCard }: Props) {
     if (!Array.isArray(myCards)) return null;
 
     const isMyTurn = state.currentPlayerId === myPlayerId;
-    const canPlay = isMyTurn && state.phase === "action";
 
     // Group cards
     const groupedCards = myCards.reduce((acc, card) => {
@@ -53,7 +52,7 @@ export function DevCardHand({ state, myPlayerId, onPlayDevCard }: Props) {
                             {type !== "victory_point" && (
                                 <button
                                     onClick={() => onPlayDevCard(type)}
-                                    disabled={!canPlay || (me.newDevCardThisTurn && myCards.length === count)}
+                                    disabled={!isMyTurn || (type === "knight" ? !["roll", "action"].includes(state.phase) : state.phase !== "action") || (me.newDevCardThisTurn && myCards.length === count)}
                                     className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-600 disabled:bg-white/5 disabled:text-white/10 text-white rounded-lg text-xs font-black transition-all"
                                 >
                                     PLAY

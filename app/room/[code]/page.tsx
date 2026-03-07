@@ -115,6 +115,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
 
     const handleVertexClick = (id: number) => {
+        if (pendingDevCard === "knight") return;
+
         const vertex = gameState.vertices.find(v => v.id === id);
 
         if (gameState.phase === "initial_settlement") {
@@ -129,6 +131,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     };
 
     const handleEdgeClick = (id: number) => {
+        if (pendingDevCard === "knight") return;
+
         if (gameState.phase === "initial_road") {
             dispatchAction({ type: "PLACE_INITIAL_ROAD", edgeId: id });
             return;
