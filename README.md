@@ -1,54 +1,52 @@
-# Catan Friends 🏰🎲
+# Catan Clone
 
-A modern, minimal, web-based Catan clone designed for playing with friends. Built with Next.js, React, Tailwind CSS, and PartyKit for live multiplayer synchronization.
+A real-time, web-based implementation of the Catan board game. This project demonstrates complex state synchronization, interactive game loop management, and advanced UI rendering using a modern web stack.
 
-## Features ✨
+## Tech Stack & Architecture
 
-### Core Gameplay
-- Fully functional Hexagonal Board generation and interaction.
-- Complete game loop: Rolling dice, resource distribution, trading, building, and playing Development Cards.
-- "Longest Road" and "Largest Army" tracking.
-- Robber functionality (discarding half your cards and stealing).
-- Win condition tracking (10 Victory Points).
-
-### Highly Polished Visuals & UX
-We've focused heavily on making the UI not just functional, but a joy to use. Recent updates include:
-- **Translucent Ghost Previews**: When building a road, settlement, or city, hovering over a valid spot displays a pulsing, translucent 3D preview of your actual game piece, rather than generic outlines or white boxes.
-- **Colonist-Style Animations**: When resources are gathered after a dice roll, animated icons burst from the producing hex and fly directly into the players' scoreboards on the sidebar.
-- **Thematic Interactive UI**: The Robber "Discard Cards" sequence utilizes a dark, immersive modal where players click directly on physical resource cards to move them between their "Hand" and the "Discard Pile".
-- **Rich Text Game Logs**: The live game log automatically parses actions to display beautiful inline resource badges (e.g., `[1 Wood]`) and building icons.
-- **Dynamic Layout**: A dark-glass themed sidebar that smartly flows from Game Logs to Player Stats, Bank availability, and Build Menus without requiring scrolling.
-
-## Tech Stack 🛠️
-
-- **Frontend:** Next.js 14, React 18, Tailwind CSS, Framer Motion (for animations).
-- **Backend/Multiplayer:** [PartyKit](https://www.partykit.io/) (WebSockets for real-time state synchronization).
+- **Frontend Framework:** Next.js 14 (App Router) with React 18. Chosen for robust routing and server-side rendering capabilities, optimizing the initial load of the game environment.
+- **Real-time Engine:** PartyKit (WebSockets). Selected for its edge-native websocket handling and durable state capabilities. It maintains the authoritative `GameState` and safely broadcasts deltas/actions to connected clients.
+- **Styling & UI:** Tailwind CSS. Used for rapid, utility-first styling.
+- **Animations:** Framer Motion. Applied for complex orchestrations, specifically resource distribution flyouts and dynamic board element reveals, enhancing the UX without sacrificing performance.
 - **Icons:** Lucide React.
 
-## Getting Started 🚀
+## Core Systems Implementation
+
+### Game Logic (`lib/game-logic/`)
+The game engine is built using pure functions. This enforces strict separation of concerns, allowing the same logic to predict local UI states and validate authoritative moves on the backend.
+- **Board Generation:** Randomized hex grid generation utilizing coordinate mapping to establish vertices (settlements/cities) and edges (roads).
+- **Turn & Phase Management:** State machine handling the strict flow of Catan (Rolling -> Trading -> Building).
+- **Rule Validation:** Pre-flight checks for resource affordability, placement validity (distance rules), and turn sequence.
+
+### State Synchronization (`party/index.ts`)
+The PartyKit server acts as the single source of truth.
+- Clients dispatch serializable actions (e.g., `BUILD_ROAD`, `OFFER_TRADE`).
+- The server validates the action against the current `GameState`.
+- If valid, the state is mutated, and the updated state is broadcasted to all active connections in the room.
+
+### Rendering & UX (`app/room/[code]/page.tsx`)
+The primary game view connects to the PartyKit socket and renders the board dynamically based on the synced state.
+- **Optimized Rendering:** The HexBoard and its interactive vertices/edges are rendered using absolute positioning based on a meticulously calculated coordinate system to ensure perfect alignment across varying screen sizes.
+- **Visual Feedback:** Implements predictive UI interactions, such as translucent ghost placement indicators for valid build locations and an interactive Robber discard modal that operates on actual resource card elements rather than abstract numerical counters.
+
+## Local Development
+
+Both the Next.js frontend and the PartyKit backend must be running simultaneously for the application to function locally.
 
 1. **Install dependencies:**
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
-2. **Start the development servers:**
-    You need to run both the Next.js frontend and the PartyKit backend locally.
+2. **Start the Next.js frontend:**
+   ```bash
+   npm run dev
+   ```
 
-    Terminal 1 (Next.js App):
-    ```bash
-    npm run dev
-    ```
+3. **Start the PartyKit websocket server:**
+   ```bash
+   npx partykit dev
+   ```
 
-    Terminal 2 (PartyKit Server):
-    ```bash
-    npx partykit dev
-    ```
-
-3. **Play:**
-    Open [http://localhost:3000](http://localhost:3000) with your browser. From the home screen, you can generate a room code and invite friends to join your live game.
-
-## Architecture Highlights
-- `lib/game-logic/`: Contains pure functions defining the strict rules of Catan (board generation, validating actions, checking costs).
-- `party/index.ts`: The authoritative game server. It holds the canonical `GameState` and safely applies actions broadcasted from connected clients via websockets.
-- `app/room/[code]/page.tsx`: The main game UI wrapper that connects to the PartyKit room and renders the board and sidebars.
+4. **Access the application:**
+   Navigate to `http://localhost:3000`. Create a new room to initiate a game session.
