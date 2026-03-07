@@ -115,12 +115,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // ─────────────────────────────────────────────
 
     const handleVertexClick = (id: number) => {
+        const vertex = gameState.vertices.find(v => v.id === id);
+
         if (gameState.phase === "initial_settlement") {
             dispatchAction({ type: "PLACE_INITIAL_SETTLEMENT", vertexId: id });
-        } else if (placementMode === "settlement") {
+        } else if (placementMode === "settlement" || (!placementMode && !vertex?.building)) {
             dispatchAction({ type: "BUILD_SETTLEMENT", vertexId: id });
             setPlacementMode(null);
-        } else if (placementMode === "city") {
+        } else if (placementMode === "city" || (!placementMode && vertex?.building?.type === "settlement")) {
             dispatchAction({ type: "BUILD_CITY", vertexId: id });
             setPlacementMode(null);
         }
@@ -146,7 +148,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             return;
         }
 
-        if (placementMode === "road") {
+        if (placementMode === "road" || !placementMode) {
             dispatchAction({ type: "BUILD_ROAD", edgeId: id });
             setPlacementMode(null);
         }

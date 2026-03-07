@@ -102,17 +102,18 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
                 {hexes.map((hex: Hex) => {
                     const { x, y } = axialToPixel(hex.q, hex.r);
                     return (
-                        <HexTile
-                            key={hex.id}
-                            q={hex.q}
-                            r={hex.r}
-                            type={hex.type}
-                            cx={x}
-                            cy={y}
-                            size={HEX_SIZE}
-                            numberToken={hex.numberToken}
-                            hasRobber={hex.hasRobber}
-                        />
+                        <g key={hex.id} id={`hex-${hex.id}`}>
+                            <HexTile
+                                q={hex.q}
+                                r={hex.r}
+                                type={hex.type}
+                                cx={x}
+                                cy={y}
+                                size={HEX_SIZE}
+                                numberToken={hex.numberToken}
+                                hasRobber={hex.hasRobber}
+                            />
+                        </g>
                     );
                 })}
 

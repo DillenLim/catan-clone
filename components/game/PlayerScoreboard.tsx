@@ -35,6 +35,7 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                     return (
                         <div
                             key={p.id}
+                            id={`scoreboard-player-${p.id}`}
                             className={`flex flex-col p-3 rounded-xl border transition-all duration-300 ${isCurrent
                                 ? "border-green-500 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-[1.02]"
                                 : "border-white/5 bg-white/5"
