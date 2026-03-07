@@ -17,7 +17,7 @@ interface Props {
 const RESOURCES: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
 const RES_COLORS: Record<string, string> = {
     wood: "bg-emerald-700 text-white",
-    brick: "bg-orange-700 text-white",
+    brick: "bg-[#d6512b] text-white",
     wool: "bg-green-400 text-green-950",
     wheat: "bg-yellow-400 text-yellow-950",
     ore: "bg-slate-500 text-white",

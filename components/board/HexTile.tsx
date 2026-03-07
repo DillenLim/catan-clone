@@ -48,10 +48,10 @@ const colors: Record<HexType, { from: string; to: string; icon: React.ReactNode 
         )
     },
     hill: {
-        from: "#b91c1c", to: "#dc2626", // red-700 to red-600
+        from: "#b33d1c", to: "#d94e27", // rust
         icon: (
             <g transform="translate(-16, -16)" opacity="0.4">
-                <BrickWall size={32} color="#450a0a" strokeWidth={2} />
+                <BrickWall size={32} color="#541b0b" strokeWidth={2} />
             </g>
         )
     },

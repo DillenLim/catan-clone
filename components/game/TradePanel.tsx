@@ -14,7 +14,7 @@ const RESOURCES: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
 
 const ICON_MAP: Record<ResourceType, React.ReactNode> = {
     wood: <TreePine size={18} className="text-emerald-400" />,
-    brick: <BrickWall size={18} className="text-orange-400" />,
+    brick: <BrickWall size={18} className="text-[#eb6640]" />,
     wool: <Cloud size={18} className="text-lime-400" />,
     wheat: <Wheat size={18} className="text-amber-300" />,
     ore: <Mountain size={18} className="text-slate-400" />,
@@ -22,7 +22,7 @@ const ICON_MAP: Record<ResourceType, React.ReactNode> = {
 
 const ICON_MAP_SM: Record<ResourceType, React.ReactNode> = {
     wood: <TreePine size={13} className="text-emerald-400" />,
-    brick: <BrickWall size={13} className="text-orange-400" />,
+    brick: <BrickWall size={13} className="text-[#eb6640]" />,
     wool: <Cloud size={13} className="text-lime-400" />,
     wheat: <Wheat size={13} className="text-amber-300" />,
     ore: <Mountain size={13} className="text-slate-400" />,

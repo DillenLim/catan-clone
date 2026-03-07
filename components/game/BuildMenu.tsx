@@ -13,7 +13,7 @@ interface Props {
 
 const ICON_MAP = {
     wood: <TreePine size={16} className="text-emerald-400" />,
-    brick: <BrickWall size={16} className="text-orange-400" />,
+    brick: <BrickWall size={16} className="text-[#eb6640]" />,
     wool: <Cloud size={16} className="text-lime-400" />,
     wheat: <Wheat size={16} className="text-amber-300" />,
     ore: <Mountain size={16} className="text-slate-400" />

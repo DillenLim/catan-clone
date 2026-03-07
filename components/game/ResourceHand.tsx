@@ -9,7 +9,7 @@ interface Props {
 
 export const RESOURCE_COLORS = {
     wood: "bg-emerald-600/20 text-emerald-400 border-emerald-500/30",
-    brick: "bg-red-600/20 text-red-400 border-red-500/30",
+    brick: "bg-[#d6512b]/20 text-[#eb6640] border-[#d6512b]/30",
     wool: "bg-lime-600/20 text-white border-lime-500/30",
     wheat: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     ore: "bg-slate-500/20 text-slate-300 border-slate-500/30"

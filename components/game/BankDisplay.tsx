@@ -11,7 +11,7 @@ const resourceOrder: (keyof ResourceBundle)[] = ["wood", "brick", "wool", "wheat
 
 const RESOURCE_META: Record<string, { icon: React.ReactNode; bar: string; text: string }> = {
     wood: { icon: <TreePine size={14} strokeWidth={2.5} />, bar: "bg-emerald-500", text: "text-emerald-400" },
-    brick: { icon: <BrickWall size={14} strokeWidth={2.5} />, bar: "bg-red-500", text: "text-red-400" },
+    brick: { icon: <BrickWall size={14} strokeWidth={2.5} />, bar: "bg-[#d6512b]", text: "text-[#eb6640]" },
     wool: { icon: <Cloud size={14} strokeWidth={2.5} />, bar: "bg-lime-400", text: "text-lime-400" },
     wheat: { icon: <Wheat size={14} strokeWidth={2.5} />, bar: "bg-amber-400", text: "text-amber-300" },
     ore: { icon: <Mountain size={14} strokeWidth={2.5} />, bar: "bg-slate-400", text: "text-slate-300" },

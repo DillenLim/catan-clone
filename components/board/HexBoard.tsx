@@ -59,7 +59,7 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
                         let Icon = Anchor;
                         let color = "#cbd5e1"; // slate-300
                         if (harborType === "wood") { Icon = TreePine; color = "#34d399"; } // emerald-400
-                        else if (harborType === "brick") { Icon = BrickWall; color = "#f87171"; } // red-400
+                        else if (harborType === "brick") { Icon = BrickWall; color = "#eb6640"; } // rust
                         else if (harborType === "wheat") { Icon = Wheat; color = "#fcd34d"; } // amber-300
                         else if (harborType === "ore") { Icon = Mountain; color = "#94a3b8"; } // slate-400
                         else if (harborType === "wool") { Icon = Cloud; color = "#a3e635"; } // lime-400
