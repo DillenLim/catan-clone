@@ -1,52 +1,61 @@
 # Catan Clone
 
-A real-time, web-based implementation of the Catan board game. This project demonstrates complex state synchronization, interactive game loop management, and advanced UI rendering using a modern web stack.
+A real-time, web-based implementation of Catan. This project focuses on strict state synchronization, predictive UI feedback, and a maintainable game engine structure.
 
-## Tech Stack & Architecture
+## Features
 
-- **Frontend Framework:** Next.js 14 (App Router) with React 18. Chosen for robust routing and server-side rendering capabilities, optimizing the initial load of the game environment.
-- **Real-time Engine:** PartyKit (WebSockets). Selected for its edge-native websocket handling and durable state capabilities. It maintains the authoritative `GameState` and safely broadcasts deltas/actions to connected clients.
-- **Styling & UI:** Tailwind CSS. Used for rapid, utility-first styling.
-- **Animations:** Framer Motion. Applied for complex orchestrations, specifically resource distribution flyouts and dynamic board element reveals, enhancing the UX without sacrificing performance.
-- **Icons:** Lucide React.
+- **Authoritative Server**: Validates rules, resource constraints, and placement distances.
+- **Predictive Rendering**: Valid builds show translucent previews before socket confirmation.
+- **Synchronized Game Loop**: Strict enforcement of Rolling -> Trading -> Building sequences.
+- **Rich Logging**: Real-time event log parsing actions into inline UI badges.
+- **Robber Mechanics**: Interactive discard modal acting directly on resource elements.
 
-## Core Systems Implementation
+## Architecture & State
 
-### Game Logic (`lib/game-logic/`)
-The game engine is built using pure functions. This enforces strict separation of concerns, allowing the same logic to predict local UI states and validate authoritative moves on the backend.
-- **Board Generation:** Randomized hex grid generation utilizing coordinate mapping to establish vertices (settlements/cities) and edges (roads).
-- **Turn & Phase Management:** State machine handling the strict flow of Catan (Rolling -> Trading -> Building).
-- **Rule Validation:** Pre-flight checks for resource affordability, placement validity (distance rules), and turn sequence.
+### 1. Game State Engine (`lib/game-logic/`)
+The engine is written as pure functions. The `GameState` object contains arrays of `Hex`, `Vertex`, and `Edge` objects modeled via an accurate coordinate grid. Functions like `distributeResources` and `canAfford` execute deterministically, allowing parallel validation on both client and server.
 
-### State Synchronization (`party/index.ts`)
-The PartyKit server acts as the single source of truth.
-- Clients dispatch serializable actions (e.g., `BUILD_ROAD`, `OFFER_TRADE`).
-- The server validates the action against the current `GameState`.
-- If valid, the state is mutated, and the updated state is broadcasted to all active connections in the room.
+### 2. Synchronization (`party/index.ts`)
+**PartyKit (WebSockets)** runs the authoritative backend. 
+- Clients emit serializeable intent objects (e.g., `BUILD_SETTLEMENT`, `OFFER_TRADE`).
+- The server applies the action to the in-memory state.
+- The server broadcasts the mutated state to all concurrent room members.
 
-### Rendering & UX (`app/room/[code]/page.tsx`)
-The primary game view connects to the PartyKit socket and renders the board dynamically based on the synced state.
-- **Optimized Rendering:** The HexBoard and its interactive vertices/edges are rendered using absolute positioning based on a meticulously calculated coordinate system to ensure perfect alignment across varying screen sizes.
-- **Visual Feedback:** Implements predictive UI interactions, such as translucent ghost placement indicators for valid build locations and an interactive Robber discard modal that operates on actual resource card elements rather than abstract numerical counters.
+### 3. Client Rendering (`app/room/[code]/page.tsx`)
+**Next.js 14 (App Router)** drives the frontend. The `HexBoard` component translates the abstract coordinate system into absolute pixel coordinates for rendering. Framer Motion handles complex layout shifts (like resource distribution flyouts) independent of the core React render cycle.
 
-## Local Development
-
-Both the Next.js frontend and the PartyKit backend must be running simultaneously for the application to function locally.
+## Local Setup
 
 1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. **Start the Next.js frontend:**
+2. **Start Next.js (Frontend):**
    ```bash
    npm run dev
    ```
 
-3. **Start the PartyKit websocket server:**
+3. **Start PartyKit (Backend):**
    ```bash
    npx partykit dev
    ```
+Navigate to `http://localhost:3000` to start a session.
 
-4. **Access the application:**
-   Navigate to `http://localhost:3000`. Create a new room to initiate a game session.
+## Vercel Deployment
+
+This application utilizes two separate domains: one for the static/serverless frontend, and one for the persistent WebSocket backend.
+
+1. **Deploy Frontend (Next.js):**
+   - Push your repository to GitHub.
+   - Import the repository in your Vercel dashboard.
+   - Vercel will automatically detect Next.js and build it.
+   - *Note: Once the backend is deployed, you will need to set an Environment Variable in Vercel pointing to the backend URL (e.g., `NEXT_PUBLIC_PARTYKIT_HOST`).*
+
+2. **Deploy Backend (PartyKit):**
+   - Ensure you are logged into the PartyKit CLI: `npx partykit login`
+   - Run the deploy script from your terminal:
+     ```bash
+     npx partykit deploy
+     ```
+   - Copy the deployed PartyKit URL and add it to your Next.js Vercel environment variables. Redeploy Next.js if necessary.
