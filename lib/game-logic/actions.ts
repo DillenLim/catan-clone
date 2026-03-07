@@ -248,6 +248,10 @@ export function applyAction(
                 const pIdx = newState.turnOrder.indexOf(playerId);
                 newState.currentPlayerId = newState.turnOrder[(pIdx + 1) % newState.turnOrder.length];
                 newState.phase = "roll";
+
+                // Clear the distribution array so animations don't replay on the next player's initial load
+                newState.lastDistribution = null;
+
                 newState.log.push({ timestamp: Date.now(), text: `turn ended. It's now ${newState.players.find(p => p.id === newState.currentPlayerId)?.name}'s turn.`, playerId });
             }
             break;
