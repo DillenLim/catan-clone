@@ -46,6 +46,7 @@ export interface Player {
   devCards: DevCardType[];
   newDevCardThisTurn: boolean;
   devCardPlayedThisTurn: boolean;
+  devCardsBoughtThisTurn: number[]; // indices into devCards of cards bought this turn (can't be played same turn)
   knightsPlayed: number;
   roadsBuilt: number;
   settlementsBuilt: number;

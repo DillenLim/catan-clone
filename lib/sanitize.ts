@@ -20,6 +20,7 @@ export function sanitizeStateForPlayer(state: GameState, forPlayerId: string): a
             // Hide visibility lock status flags
             delete (player as any).newDevCardThisTurn;
             delete (player as any).devCardPlayedThisTurn;
+            delete (player as any).devCardsBoughtThisTurn;
         } else {
             // For the receiving player, keep their hand intact but maybe obscure VP cards? 
             // Nah, they get to see their own VP cards.

@@ -7,7 +7,7 @@ describe('Game Actions: lastDistribution Clearing', () => {
         const p1: Player = {
             id: 'p1', name: 'Alice', color: 'red',
             resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
-            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false,
+            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false, devCardsBoughtThisTurn: [],
             knightsPlayed: 0, roadsBuilt: 0, settlementsBuilt: 0, citiesBuilt: 0,
             hasLongestRoad: false, hasLargestArmy: false, isReady: true, isConnected: true, isHost: true
         };
@@ -15,7 +15,7 @@ describe('Game Actions: lastDistribution Clearing', () => {
         const p2: Player = {
             id: 'p2', name: 'Bob', color: 'blue',
             resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
-            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false,
+            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false, devCardsBoughtThisTurn: [],
             knightsPlayed: 0, roadsBuilt: 0, settlementsBuilt: 0, citiesBuilt: 0,
             hasLongestRoad: false, hasLargestArmy: false, isReady: true, isConnected: true, isHost: false
         };

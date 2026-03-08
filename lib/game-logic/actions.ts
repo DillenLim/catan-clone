@@ -257,6 +257,7 @@ export function applyAction(
         case "END_TURN": {
             newPlayer.newDevCardThisTurn = false;
             newPlayer.devCardPlayedThisTurn = false;
+            newPlayer.devCardsBoughtThisTurn = [];
             newState.freeRoadsRemaining = 0;
 
             // Check win exactly at the end of action phase
@@ -333,16 +334,29 @@ export function applyAction(
         case "PLAY_KNIGHT": {
             if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
 
-            const knightIdx = newPlayer.devCards.indexOf("knight");
-            if (knightIdx === -1) return { valid: false, error: "No knight card." };
+            // Find a playable knight (not one bought this turn)
+            const knightIdx = newPlayer.devCards.findIndex((c, i) => c === "knight" && !newPlayer.devCardsBoughtThisTurn.includes(i));
+            if (knightIdx === -1) return { valid: false, error: "No playable knight card (cards bought this turn cannot be played)." };
 
             // Validate robber placement BEFORE mutating state
             if (!isValidRobberPlacement(action.hexId, newState)) {
                 return { valid: false, error: "Invalid hex for robber." };
             }
 
+            // Enforce mandatory steal when targets exist (same as MOVE_ROBBER)
+            const knightAdjVertices = newState.vertices.filter(v => v.adjacentHexIds.includes(action.hexId) && v.building && v.building.playerId !== playerId);
+            if (knightAdjVertices.length > 0) {
+                if (!action.stealFromPlayerId || !knightAdjVertices.some(v => v.building?.playerId === action.stealFromPlayerId)) {
+                    return { valid: false, error: "Must specify a valid player to steal from." };
+                }
+            }
+
             // Now safe to mutate
             newPlayer.devCards.splice(knightIdx, 1);
+            // Adjust devCardsBoughtThisTurn indices after removing a card
+            newPlayer.devCardsBoughtThisTurn = newPlayer.devCardsBoughtThisTurn
+                .filter(i => i !== knightIdx)
+                .map(i => i > knightIdx ? i - 1 : i);
             newPlayer.knightsPlayed += 1;
             newPlayer.devCardPlayedThisTurn = true;
 
@@ -380,9 +394,12 @@ export function applyAction(
         case "PLAY_MONOPOLY": {
             if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
 
-            const idx = newPlayer.devCards.indexOf("monopoly");
-            if (idx === -1) return { valid: false, error: "No monopoly card." };
+            const idx = newPlayer.devCards.findIndex((c, i) => c === "monopoly" && !newPlayer.devCardsBoughtThisTurn.includes(i));
+            if (idx === -1) return { valid: false, error: "No playable monopoly card." };
             newPlayer.devCards.splice(idx, 1);
+            newPlayer.devCardsBoughtThisTurn = newPlayer.devCardsBoughtThisTurn
+                .filter(i => i !== idx)
+                .map(i => i > idx ? i - 1 : i);
             newPlayer.devCardPlayedThisTurn = true;
 
             let stolen = 0;
@@ -403,8 +420,8 @@ export function applyAction(
         case "PLAY_YEAR_OF_PLENTY": {
             if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
 
-            const idx = newPlayer.devCards.indexOf("year_of_plenty");
-            if (idx === -1) return { valid: false, error: "No Year of Plenty card." };
+            const yopIdx = newPlayer.devCards.findIndex((c, i) => c === "year_of_plenty" && !newPlayer.devCardsBoughtThisTurn.includes(i));
+            if (yopIdx === -1) return { valid: false, error: "No playable Year of Plenty card." };
 
             // Validate count BEFORE mutating state
             let totalRequested = 0;
@@ -414,14 +431,26 @@ export function applyAction(
             }
             if (totalRequested !== 2) return { valid: false, error: "Must take exactly 2 resources." };
 
+            // Check bank has enough of each requested resource
+            for (const [res, amt] of Object.entries(action.resources)) {
+                if (!amt || amt <= 0) continue;
+                const bankHas = newState.bank[res as keyof ResourceBundle] || 0;
+                if (bankHas < amt) {
+                    return { valid: false, error: `Bank does not have enough ${res} (has ${bankHas}, need ${amt}).` };
+                }
+            }
+
             // Now safe to mutate
-            newPlayer.devCards.splice(idx, 1);
+            newPlayer.devCards.splice(yopIdx, 1);
+            newPlayer.devCardsBoughtThisTurn = newPlayer.devCardsBoughtThisTurn
+                .filter(i => i !== yopIdx)
+                .map(i => i > yopIdx ? i - 1 : i);
             newPlayer.devCardPlayedThisTurn = true;
 
             for (const [res, amt] of Object.entries(action.resources)) {
                 if (!amt || amt <= 0) continue;
                 newPlayer.resources[res as keyof ResourceBundle] = (newPlayer.resources[res as keyof ResourceBundle] || 0) + amt;
-                newState.bank[res as keyof ResourceBundle] = Math.max(0, (newState.bank[res as keyof ResourceBundle] || 0) - amt);
+                newState.bank[res as keyof ResourceBundle]! -= amt;
             }
 
             const resStrs = Object.entries(action.resources).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
@@ -432,9 +461,12 @@ export function applyAction(
         case "PLAY_ROAD_BUILDING": {
             if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
 
-            const rbIdx = newPlayer.devCards.indexOf("road_building");
-            if (rbIdx === -1) return { valid: false, error: "No Road Building card." };
+            const rbIdx = newPlayer.devCards.findIndex((c, i) => c === "road_building" && !newPlayer.devCardsBoughtThisTurn.includes(i));
+            if (rbIdx === -1) return { valid: false, error: "No playable Road Building card." };
             newPlayer.devCards.splice(rbIdx, 1);
+            newPlayer.devCardsBoughtThisTurn = newPlayer.devCardsBoughtThisTurn
+                .filter(i => i !== rbIdx)
+                .map(i => i > rbIdx ? i - 1 : i);
             newPlayer.devCardPlayedThisTurn = true;
             newState.freeRoadsRemaining = 2;
             newState.log.push({ timestamp: Date.now(), text: "played [road_building]", playerId });
@@ -506,6 +538,9 @@ export function applyAction(
         }
 
         case "CANCEL_TRADE": {
+            if (!newState.pendingTradeOffer || newState.pendingTradeOffer.fromPlayerId !== playerId) {
+                return { valid: false, error: "Only the offerer can cancel their trade." };
+            }
             newState.pendingTradeOffer = null;
             newState.log.push({ timestamp: Date.now(), text: "cancelled their trade offer", playerId });
             break;

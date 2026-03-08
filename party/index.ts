@@ -89,6 +89,7 @@ export default class CatanRoom implements Party.Server {
                     devCards: [],
                     newDevCardThisTurn: false,
                     devCardPlayedThisTurn: false,
+                    devCardsBoughtThisTurn: [],
                     knightsPlayed: 0,
                     roadsBuilt: 0,
                     settlementsBuilt: 0,
@@ -192,6 +193,7 @@ export default class CatanRoom implements Party.Server {
                 const card = this.devCardDeckOrder.pop()!;
                 player.devCards.push(card);
                 player.newDevCardThisTurn = true;
+                player.devCardsBoughtThisTurn.push(player.devCards.length - 1); // Track the index
                 this.gameState.devCardDeckCount = this.devCardDeckOrder.length;
                 this.gameState.lastDistribution = null; // Prevent animation replay
                 this.gameState.log.push({ timestamp: Date.now(), text: "bought a development card", playerId: msg.playerId });
