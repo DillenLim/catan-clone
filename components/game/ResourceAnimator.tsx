@@ -54,11 +54,13 @@ export function ResourceAnimator({ state }: Props) {
         if (state.lastDistribution && state.lastDistribution.id !== lastDistributionRef.current) {
             lastDistributionRef.current = state.lastDistribution.id;
 
+            const distributionData = state.lastDistribution;
             // Wait a tiny bit for the layout to settle after the dice roll
             setTimeout(() => {
+                if (!distributionData) return;
                 const newParticles: AnimationParticle[] = [];
 
-                state.lastDistribution!.resources.forEach((dist, index) => {
+                distributionData.resources.forEach((dist, index) => {
                     // 1. Find the starting pixel coordinates of the Hex
                     const hex = state.hexes.find(h => h.id === dist.hexId);
 

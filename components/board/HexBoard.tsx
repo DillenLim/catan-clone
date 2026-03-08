@@ -36,6 +36,7 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
                     {edges.filter(e => {
                         const v1 = vertices[e.vertexIds[0]];
                         const v2 = vertices[e.vertexIds[1]];
+                        // A harbor is assigned to both vertices of a coastal edge in board.ts
                         return v1.harbor && v2.harbor && v1.harbor.type === v2.harbor.type;
                     }).map((e: Edge) => {
                         const v1 = vertices[e.vertexIds[0]];

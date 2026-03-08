@@ -34,8 +34,6 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
         for (const [t, count] of Object.entries(terrainCounts)) {
             for (let i = 0; i < count; i++) terrains.push(t as HexType);
         }
-        terrains = shuffleArray(terrains);
-
         const tokens = shuffleArray([...numberTokens]);
 
         // Find desert first
@@ -54,7 +52,7 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
 
         while (!valid && attempts < 100) {
             attempts++;
-            const ShuffledTokens = shuffleArray([...tokens]);
+            const ShuffledTokens = shuffleArray(tokens);
             valid = true;
 
             // Tentatively assign

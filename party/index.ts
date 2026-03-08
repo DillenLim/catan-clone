@@ -3,6 +3,7 @@ import { GameState, ClientMessage, Player, GameLogEntry } from "../lib/types";
 import { generateBoard, shuffleDevCards, shuffleArray } from "../lib/game-logic/board";
 import { applyAction } from "../lib/game-logic/actions";
 import { sanitizeStateForPlayer } from "../lib/sanitize";
+import { isPlayerTurn, isValidPhase, canAfford } from "../lib/game-logic/validation";
 
 export default class CatanRoom implements Party.Server {
     gameState: GameState;
@@ -168,11 +169,11 @@ export default class CatanRoom implements Party.Server {
                 if (!player) return;
 
                 // Validate turn and phase
-                if (this.gameState.currentPlayerId !== msg.playerId) {
+                if (!isPlayerTurn(msg.playerId, this.gameState)) {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Not your turn." }));
                     return;
                 }
-                if (this.gameState.phase !== "action") {
+                if (!isValidPhase(msg.payload, this.gameState.phase)) {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Cannot buy dev card during this phase." }));
                     return;
                 }
@@ -183,30 +184,25 @@ export default class CatanRoom implements Party.Server {
                 }
 
                 const cost = { wool: 1, wheat: 1, ore: 1 };
-                let canAfford = true;
-                for (const [res, amt] of Object.entries(cost)) {
-                    if ((player.resources[res as keyof import("../lib/types").ResourceBundle] || 0) < amt) canAfford = false;
-                }
-
-                if (!canAfford) {
+                if (!canAfford(cost, player)) {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Cannot afford Dev Card." }));
                     return;
                 }
 
                 // Process payment
-                player.resources.wool! -= 1;
-                player.resources.wheat! -= 1;
-                player.resources.ore! -= 1;
-                this.gameState.bank.wool! += 1;
-                this.gameState.bank.wheat! += 1;
-                this.gameState.bank.ore! += 1;
+                player.resources.wool -= 1;
+                player.resources.wheat -= 1;
+                player.resources.ore -= 1;
+                this.gameState.bank.wool += 1;
+                this.gameState.bank.wheat += 1;
+                this.gameState.bank.ore += 1;
 
                 // Give card
                 const card = this.devCardDeckOrder.pop()!;
                 player.devCards.push(card);
-                player.devCardsBoughtThisTurn.push(player.devCards.length - 1); // Track the index
+                player.devCardsBoughtThisTurn.push(player.devCards.length - 1);
                 this.gameState.devCardDeckCount = this.devCardDeckOrder.length;
-                this.gameState.lastDistribution = null; // Prevent animation replay
+                this.gameState.lastDistribution = null;
                 this.gameState.log.push({ timestamp: Date.now(), text: "bought a development card", playerId: msg.playerId });
 
                 this.broadcastState();
@@ -271,9 +267,32 @@ export default class CatanRoom implements Party.Server {
                     // Re-check: player might have reconnected
                     const p = this.gameState.players.find(pl => pl.id === conn.id);
                     if (p && !p.isConnected && this.gameState.currentPlayerId === conn.id) {
-                        const pIdx = this.gameState.turnOrder.indexOf(conn.id);
-                        this.gameState.currentPlayerId = this.gameState.turnOrder[(pIdx + 1) % this.gameState.turnOrder.length];
-                        this.gameState.phase = "roll";
+                        if (this.gameState.status === "initial_placement") {
+                            // Specialized skip for initial placement (mimics handlePlaceInitialRoad logic)
+                            if (this.gameState.initialPlacementRound === 1) {
+                                this.gameState.initialPlacementIndex += 1;
+                                if (this.gameState.initialPlacementIndex >= this.gameState.turnOrder.length) {
+                                    this.gameState.initialPlacementRound = 2;
+                                    this.gameState.initialPlacementIndex = this.gameState.turnOrder.length - 1;
+                                }
+                            } else {
+                                this.gameState.initialPlacementIndex -= 1;
+                                if (this.gameState.initialPlacementIndex < 0) {
+                                    this.gameState.status = "playing";
+                                    this.gameState.currentPlayerId = this.gameState.turnOrder[0];
+                                    this.gameState.phase = "roll";
+                                    this.broadcastState();
+                                    return;
+                                }
+                            }
+                            this.gameState.currentPlayerId = this.gameState.turnOrder[this.gameState.initialPlacementIndex];
+                            this.gameState.phase = "initial_settlement";
+                        } else {
+                            // Normal play skip
+                            const pIdx = this.gameState.turnOrder.indexOf(conn.id);
+                            this.gameState.currentPlayerId = this.gameState.turnOrder[(pIdx + 1) % this.gameState.turnOrder.length];
+                            this.gameState.phase = "roll";
+                        }
                         this.gameState.log.push({ timestamp: Date.now(), text: `${p.name} disconnected. Turn skipped.` });
                         this.broadcastState();
                     }
