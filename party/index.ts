@@ -30,6 +30,7 @@ export default class CatanRoom implements Party.Server {
             edges: [],
             bank: { wood: 19, brick: 19, wool: 19, wheat: 19, ore: 19 },
             devCardDeckCount: 25,
+            freeRoadsRemaining: 0,
             longestRoadPlayerId: null,
             longestRoadLength: 0,
             largestArmyPlayerId: null,
@@ -76,6 +77,10 @@ export default class CatanRoom implements Party.Server {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Game already started." }));
                     return;
                 }
+                if (this.gameState.players.length >= 4) {
+                    sender.send(JSON.stringify({ type: "ERROR", message: "Room is full (4 players max)." }));
+                    return;
+                }
                 const newPlayer: Player = {
                     id: msg.playerId,
                     name: msg.player.name,
@@ -83,6 +88,7 @@ export default class CatanRoom implements Party.Server {
                     resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
                     devCards: [],
                     newDevCardThisTurn: false,
+                    devCardPlayedThisTurn: false,
                     knightsPlayed: 0,
                     roadsBuilt: 0,
                     settlementsBuilt: 0,
@@ -143,19 +149,26 @@ export default class CatanRoom implements Party.Server {
         }
 
         if (msg.type === "ACTION") {
-            // Intercept buying a dev card because it requires Server side deck manipulation
+            // Intercept buying a dev card because it requires server-side deck manipulation
             if (msg.payload.type === "BUY_DEV_CARD") {
                 const player = this.gameState.players.find(p => p.id === msg.playerId);
                 if (!player) return;
+
+                // Validate turn and phase
+                if (this.gameState.currentPlayerId !== msg.playerId) {
+                    sender.send(JSON.stringify({ type: "ERROR", message: "Not your turn." }));
+                    return;
+                }
+                if (this.gameState.phase !== "action") {
+                    sender.send(JSON.stringify({ type: "ERROR", message: "Cannot buy dev card during this phase." }));
+                    return;
+                }
 
                 if (this.devCardDeckOrder.length === 0) {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Deck is empty." }));
                     return;
                 }
 
-                const result = applyAction({ type: "BUY_DEV_CARD" }, msg.playerId, this.gameState);
-                // applyAction normally doesn't mutate devCards since it lacks deck knowledge.
-                // We handle the valid payment check here:
                 const cost = { wool: 1, wheat: 1, ore: 1 };
                 let canAfford = true;
                 for (const [res, amt] of Object.entries(cost)) {
@@ -204,13 +217,26 @@ export default class CatanRoom implements Party.Server {
                 }));
             }
         }
+
+        if (msg.type === "SETTINGS_UPDATE") {
+            const player = this.gameState.players.find(p => p.id === msg.playerId);
+            if (!player?.isHost) {
+                sender.send(JSON.stringify({ type: "ERROR", message: "Only host can change settings." }));
+                return;
+            }
+            if (this.gameState.status !== "lobby") {
+                sender.send(JSON.stringify({ type: "ERROR", message: "Cannot change settings after game started." }));
+                return;
+            }
+            this.gameState.settings = { ...this.gameState.settings, ...msg.settings };
+            this.broadcastState();
+        }
     }
 
     onClose(conn: Party.Connection) {
         const player = this.gameState.players.find(p => p.id === conn.id);
         if (player) {
             player.isConnected = false;
-            this.broadcastState();
 
             // If host disconnected, promote first connected player
             if (player.isHost) {
@@ -219,9 +245,28 @@ export default class CatanRoom implements Party.Server {
                     player.isHost = false;
                     nextHost.isHost = true;
                     this.gameState.log.push({ timestamp: Date.now(), text: `${nextHost.name} is now the host.` });
-                    this.broadcastState();
                 }
             }
+
+            // If it's the disconnected player's turn during active play, auto-skip after a delay
+            if (
+                (this.gameState.status === "playing" || this.gameState.status === "initial_placement") &&
+                this.gameState.currentPlayerId === conn.id
+            ) {
+                setTimeout(() => {
+                    // Re-check: player might have reconnected
+                    const p = this.gameState.players.find(pl => pl.id === conn.id);
+                    if (p && !p.isConnected && this.gameState.currentPlayerId === conn.id) {
+                        const pIdx = this.gameState.turnOrder.indexOf(conn.id);
+                        this.gameState.currentPlayerId = this.gameState.turnOrder[(pIdx + 1) % this.gameState.turnOrder.length];
+                        this.gameState.phase = "roll";
+                        this.gameState.log.push({ timestamp: Date.now(), text: `${p.name} disconnected. Turn skipped.` });
+                        this.broadcastState();
+                    }
+                }, 15000); // 15 second grace period
+            }
+
+            this.broadcastState();
         }
     }
 }

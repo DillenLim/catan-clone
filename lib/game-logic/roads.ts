@@ -59,8 +59,10 @@ export function calculateLongestRoad(playerId: string, edges: Edge[], vertices: 
 }
 
 export function updateLongestRoad(state: GameState): GameState {
+    // Calculate each player's longest contiguous road WITHOUT overwriting roadsBuilt
+    const playerRoadLengths: Record<string, number> = {};
     for (const p of state.players) {
-        p.roadsBuilt = calculateLongestRoad(p.id, state.edges, state.vertices);
+        playerRoadLengths[p.id] = calculateLongestRoad(p.id, state.edges, state.vertices);
     }
 
     let newLongestId = state.longestRoadPlayerId;
@@ -69,27 +71,28 @@ export function updateLongestRoad(state: GameState): GameState {
     // Rule: Must be >= 5 to claim.
     // Rule: Challenger must strictly exceed to steal.
     for (const p of state.players) {
-        if (p.roadsBuilt >= 5 && p.roadsBuilt > newLongestLength) {
+        const roadLen = playerRoadLengths[p.id];
+        if (roadLen >= 5 && roadLen > newLongestLength) {
             newLongestId = p.id;
-            newLongestLength = p.roadsBuilt;
+            newLongestLength = roadLen;
         }
     }
 
     // If previous holder lost their road (e.g. broken by opponent settlement),
-    // we might need to find the next longest. This implies newLongestLength needs to be re-evaluated
-    // if the current holder's length dropped below their previous record.
+    // we might need to find the next longest.
     if (state.longestRoadPlayerId) {
-        const currentHolder = state.players.find(p => p.id === state.longestRoadPlayerId);
-        if (!currentHolder || currentHolder.roadsBuilt < state.longestRoadLength) {
+        const currentHolderLen = playerRoadLengths[state.longestRoadPlayerId] ?? 0;
+        if (currentHolderLen < state.longestRoadLength) {
             // Recalculate true longest
             let maxDrop = 0;
             let candidates: string[] = [];
             for (const p of state.players) {
-                if (p.roadsBuilt >= 5) {
-                    if (p.roadsBuilt > maxDrop) {
-                        maxDrop = p.roadsBuilt;
+                const len = playerRoadLengths[p.id];
+                if (len >= 5) {
+                    if (len > maxDrop) {
+                        maxDrop = len;
                         candidates = [p.id];
-                    } else if (p.roadsBuilt === maxDrop) {
+                    } else if (len === maxDrop) {
                         candidates.push(p.id);
                     }
                 }
@@ -106,7 +109,7 @@ export function updateLongestRoad(state: GameState): GameState {
                 } else {
                     // Tie among new players: NO ONE gets it until someone takes lead
                     newLongestId = null;
-                    newLongestLength = maxDrop; // no one has it though
+                    newLongestLength = maxDrop;
                 }
             } else {
                 newLongestId = null;

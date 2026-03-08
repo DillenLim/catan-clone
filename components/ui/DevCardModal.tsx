@@ -151,7 +151,7 @@ export function DevCardModal({ cardType, onSetPendingCard, onConfirm, onClose }:
                             Click an edge on the board to place each road.
                         </p>
                         <button
-                            onClick={() => { onSetPendingCard("road_building"); onClose(); }}
+                            onClick={() => onConfirm({ type: "PLAY_ROAD_BUILDING" })}
                             className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl"
                         >
                             Start Building Roads

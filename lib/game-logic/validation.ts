@@ -12,6 +12,8 @@ export function isValidPhase(action: GameAction, phase: TurnPhase): boolean {
         case "PLACE_INITIAL_SETTLEMENT": return phase === "initial_settlement";
         case "PLACE_INITIAL_ROAD": return phase === "initial_road";
         case "PLAY_KNIGHT": return phase === "action" || phase === "roll";
+        case "ACCEPT_TRADE": return phase === "action";
+        case "REJECT_TRADE": return phase === "action";
         default: return phase === "action";
     }
 }

@@ -7,7 +7,7 @@ describe('Game Actions: lastDistribution Clearing', () => {
         const p1: Player = {
             id: 'p1', name: 'Alice', color: 'red',
             resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
-            devCards: [], newDevCardThisTurn: false,
+            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false,
             knightsPlayed: 0, roadsBuilt: 0, settlementsBuilt: 0, citiesBuilt: 0,
             hasLongestRoad: false, hasLargestArmy: false, isReady: true, isConnected: true, isHost: true
         };
@@ -15,7 +15,7 @@ describe('Game Actions: lastDistribution Clearing', () => {
         const p2: Player = {
             id: 'p2', name: 'Bob', color: 'blue',
             resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
-            devCards: [], newDevCardThisTurn: false,
+            devCards: [], newDevCardThisTurn: false, devCardPlayedThisTurn: false,
             knightsPlayed: 0, roadsBuilt: 0, settlementsBuilt: 0, citiesBuilt: 0,
             hasLongestRoad: false, hasLargestArmy: false, isReady: true, isConnected: true, isHost: false
         };
@@ -30,12 +30,13 @@ describe('Game Actions: lastDistribution Clearing', () => {
             initialPlacementRound: 1,
             initialPlacementIndex: 0,
             hexes: [
-                { id: 1, q: 0, r: 0, s: 0, type: 'forest', diceNumber: 6, hasRobber: false }
+                { id: 1, q: 0, r: 0, type: 'forest', numberToken: 6, hasRobber: false }
             ],
             vertices: [],
             edges: [],
             bank: { wood: 19, brick: 19, wool: 19, wheat: 19, ore: 19 },
             devCardDeckCount: 25,
+            freeRoadsRemaining: 0,
             longestRoadPlayerId: null,
             longestRoadLength: 0,
             largestArmyPlayerId: null,

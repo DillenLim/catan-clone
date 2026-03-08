@@ -14,8 +14,8 @@ export function applyAction(
         return { valid: false, error: "Game holds inactive status." };
     }
 
-    // Certain actions don't require it to be your strict turn (e.g., discarding half cards, accepting trades)
-    const requiresTurn = action.type !== "DISCARD_CARDS" && action.type !== "ACCEPT_TRADE";
+    // Certain actions don't require it to be your strict turn (e.g., discarding half cards, accepting/rejecting trades)
+    const requiresTurn = action.type !== "DISCARD_CARDS" && action.type !== "ACCEPT_TRADE" && action.type !== "REJECT_TRADE";
     if (requiresTurn && !isPlayerTurn(playerId, state)) {
         return { valid: false, error: "Not your turn." };
     }
@@ -133,15 +133,20 @@ export function applyAction(
         }
 
         case "BUILD_ROAD": {
-            const cost: ResourceBundle = { wood: 1, brick: 1 };
-            if (!canAfford(cost, newPlayer)) return { valid: false, error: "Cannot afford road." };
             if (newPlayer.roadsBuilt >= 15) return { valid: false, error: "Max roads built." };
             if (!isValidRoadPlacement(action.edgeId, newState, playerId)) return { valid: false, error: "Invalid road placement." };
 
-            newPlayer.resources.wood! -= 1;
-            newPlayer.resources.brick! -= 1;
-            newState.bank.wood! += 1;
-            newState.bank.brick! += 1;
+            // Road Building dev card grants free roads
+            if (newState.freeRoadsRemaining > 0) {
+                newState.freeRoadsRemaining -= 1;
+            } else {
+                const cost: ResourceBundle = { wood: 1, brick: 1 };
+                if (!canAfford(cost, newPlayer)) return { valid: false, error: "Cannot afford road." };
+                newPlayer.resources.wood! -= 1;
+                newPlayer.resources.brick! -= 1;
+                newState.bank.wood! += 1;
+                newState.bank.brick! += 1;
+            }
 
             const edge = newState.edges.find(e => e.id === action.edgeId)!;
             edge.road = { playerId };
@@ -241,7 +246,9 @@ export function applyAction(
         }
 
         case "END_TURN": {
-            newPlayer.newDevCardThisTurn = false; // Reset lock
+            newPlayer.newDevCardThisTurn = false;
+            newPlayer.devCardPlayedThisTurn = false;
+            newState.freeRoadsRemaining = 0;
 
             // Check win exactly at the end of action phase
             const winner = checkWinCondition(newState);
@@ -315,11 +322,13 @@ export function applyAction(
         }
 
         case "PLAY_KNIGHT": {
-            // Remove knight from hand
+            if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
+
             const knightIdx = newPlayer.devCards.indexOf("knight");
             if (knightIdx === -1) return { valid: false, error: "No knight card." };
             newPlayer.devCards.splice(knightIdx, 1);
             newPlayer.knightsPlayed += 1;
+            newPlayer.devCardPlayedThisTurn = true;
 
             // Move robber
             if (!isValidRobberPlacement(action.hexId, newState)) {
@@ -346,14 +355,22 @@ export function applyAction(
                 newState.log.push({ timestamp: Date.now(), text: "played a [knight]", playerId });
             }
 
+            // If knight was played before rolling, transition to action phase
+            if (newState.phase === "roll") {
+                newState.phase = "action";
+            }
+
             updateLargestArmy(newState);
             break;
         }
 
         case "PLAY_MONOPOLY": {
+            if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
+
             const idx = newPlayer.devCards.indexOf("monopoly");
             if (idx === -1) return { valid: false, error: "No monopoly card." };
             newPlayer.devCards.splice(idx, 1);
+            newPlayer.devCardPlayedThisTurn = true;
 
             let stolen = 0;
             for (const p of newState.players) {
@@ -371,9 +388,12 @@ export function applyAction(
         }
 
         case "PLAY_YEAR_OF_PLENTY": {
+            if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
+
             const idx = newPlayer.devCards.indexOf("year_of_plenty");
             if (idx === -1) return { valid: false, error: "No Year of Plenty card." };
             newPlayer.devCards.splice(idx, 1);
+            newPlayer.devCardPlayedThisTurn = true;
 
             let totalRequested = 0;
             for (const [res, amt] of Object.entries(action.resources)) {
@@ -390,13 +410,13 @@ export function applyAction(
         }
 
         case "PLAY_ROAD_BUILDING": {
-            // Road Building allows 2 free roads — we handle it as BUILD_ROAD called twice from the
-            // client side (after this action sets the phase). In this simpler impl, the client
-            // does free-roads via normal BUILD_ROAD but skip the affordability check.
-            // We use a server-side flag approach: just remove the card and let normal road placement follow.
-            const idx = newPlayer.devCards.indexOf("road_building");
-            if (idx === -1) return { valid: false, error: "No Road Building card." };
-            newPlayer.devCards.splice(idx, 1);
+            if (newPlayer.devCardPlayedThisTurn) return { valid: false, error: "Already played a dev card this turn." };
+
+            const rbIdx = newPlayer.devCards.indexOf("road_building");
+            if (rbIdx === -1) return { valid: false, error: "No Road Building card." };
+            newPlayer.devCards.splice(rbIdx, 1);
+            newPlayer.devCardPlayedThisTurn = true;
+            newState.freeRoadsRemaining = 2;
             newState.log.push({ timestamp: Date.now(), text: "played [road_building]", playerId });
             break;
         }
@@ -407,6 +427,8 @@ export function applyAction(
             break;
 
         case "OFFER_TRADE": {
+            if (newState.settings.maritimeOnly) return { valid: false, error: "Player trading is disabled (maritime only)." };
+
             const hasOffer = Object.entries(action.offer).some(([, v]) => (v || 0) > 0);
             const hasRequest = Object.entries(action.request).some(([, v]) => (v || 0) > 0);
             if (!hasOffer || !hasRequest) return { valid: false, error: "Must specify at least one resource to give and receive." };
@@ -431,12 +453,9 @@ export function applyAction(
             const offeror = newState.players.find(p => p.id === pending.fromPlayerId);
             if (!offeror) return { valid: false, error: "Offeror not found." };
 
-            // Check acceptor has what offeror requested
             if (!canAfford(pending.request, newPlayer)) return { valid: false, error: "You do not have the requested resources." };
-            // Check offeror still has what they offered
             if (!canAfford(pending.offer, offeror)) return { valid: false, error: "Offeror no longer has the offered resources." };
 
-            // Execute swap
             for (const [res, amt] of Object.entries(pending.offer)) {
                 if (!amt || amt <= 0) continue;
                 offeror.resources[res as keyof ResourceBundle]! -= amt;
@@ -455,6 +474,17 @@ export function applyAction(
             break;
         }
 
+        case "REJECT_TRADE": {
+            const pendingTrade = newState.pendingTradeOffer;
+            if (!pendingTrade) return { valid: false, error: "No trade offer pending." };
+            if (pendingTrade.id !== action.offerId) return { valid: false, error: "Trade offer mismatch." };
+            if (pendingTrade.fromPlayerId === playerId) return { valid: false, error: "Cannot reject your own trade offer." };
+
+            newState.pendingTradeOffer = null;
+            newState.log.push({ timestamp: Date.now(), text: `rejected the trade offer`, playerId });
+            break;
+        }
+
         case "CANCEL_TRADE": {
             newState.pendingTradeOffer = null;
             newState.log.push({ timestamp: Date.now(), text: "cancelled their trade offer", playerId });
@@ -462,6 +492,10 @@ export function applyAction(
         }
 
         case "DEBUG_ADD_RESOURCES": {
+            // Only allow in development
+            if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
+                return { valid: false, error: "Debug commands disabled in production." };
+            }
             for (const [res, amt] of Object.entries(action.resources)) {
                 if (amt && amt > 0) {
                     const r = res as keyof ResourceBundle;
@@ -485,6 +519,11 @@ export function applyAction(
         newState.status = "finished";
         newState.winnerId = immediateWinner;
         newState.log.push({ timestamp: Date.now(), text: `won the game!`, playerId: immediateWinner });
+    }
+
+    // Cap log growth to prevent unbounded state bloat
+    if (newState.log.length > 200) {
+        newState.log = newState.log.slice(-200);
     }
 
     return { valid: true, newState };

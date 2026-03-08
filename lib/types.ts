@@ -45,6 +45,7 @@ export interface Player {
   resources: ResourceBundle;
   devCards: DevCardType[];
   newDevCardThisTurn: boolean;
+  devCardPlayedThisTurn: boolean;
   knightsPlayed: number;
   roadsBuilt: number;
   settlementsBuilt: number;
@@ -90,6 +91,7 @@ export interface GameState {
   edges: Edge[];
   bank: ResourceBundle;
   devCardDeckCount: number;
+  freeRoadsRemaining: number;
   longestRoadPlayerId: string | null;
   longestRoadLength: number;
   largestArmyPlayerId: string | null;
@@ -105,7 +107,7 @@ export interface GameState {
 
 // Client -> Server Messages
 export type GameAction =
-  | { type: "ROLL_DICE"; forcedRoll?: [number, number] }
+  | { type: "ROLL_DICE" }
   | { type: "MOVE_ROBBER"; hexId: number; stealFromPlayerId?: string }
   | { type: "DISCARD_CARDS"; cards: ResourceBundle }
   | { type: "BUILD_ROAD"; edgeId: number }
@@ -113,12 +115,13 @@ export type GameAction =
   | { type: "BUILD_CITY"; vertexId: number }
   | { type: "BUY_DEV_CARD" }
   | { type: "PLAY_KNIGHT"; hexId: number; stealFromPlayerId?: string }
-  | { type: "PLAY_ROAD_BUILDING"; edgeId1: number; edgeId2?: number }
+  | { type: "PLAY_ROAD_BUILDING" }
   | { type: "PLAY_YEAR_OF_PLENTY"; resources: Partial<Record<ResourceType, number>> }
   | { type: "PLAY_MONOPOLY"; resource: ResourceType }
   | { type: "BANK_TRADE"; offer: ResourceBundle; request: ResourceBundle }
   | { type: "OFFER_TRADE"; offer: ResourceBundle; request: ResourceBundle }
   | { type: "ACCEPT_TRADE"; offerId: string }
+  | { type: "REJECT_TRADE"; offerId: string }
   | { type: "CANCEL_TRADE" }
   | { type: "END_TURN" }
   | { type: "PLACE_INITIAL_SETTLEMENT"; vertexId: number }

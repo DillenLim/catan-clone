@@ -85,12 +85,21 @@ function IncomingOfferBanner({ offer, myId, players, onDispatch }: {
                 <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">
                     {isMyOffer ? "Waiting for response…" : `Trade from ${offerorName}`}
                 </span>
-                <button
-                    onClick={() => onDispatch({ type: "CANCEL_TRADE" })}
-                    className="flex items-center gap-1 text-[9px] text-white/40 hover:text-white uppercase font-black"
-                >
-                    <X size={9} /> {isMyOffer ? "Cancel" : "Decline"}
-                </button>
+                {isMyOffer ? (
+                    <button
+                        onClick={() => onDispatch({ type: "CANCEL_TRADE" })}
+                        className="flex items-center gap-1 text-[9px] text-white/40 hover:text-white uppercase font-black"
+                    >
+                        <X size={9} /> Cancel
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => onDispatch({ type: "REJECT_TRADE", offerId: offer.id })}
+                        className="flex items-center gap-1 text-[9px] text-red-400/70 hover:text-red-300 uppercase font-black"
+                    >
+                        <X size={9} /> Decline
+                    </button>
+                )}
             </div>
             <div className="flex items-center gap-2">
                 <div className="flex gap-1.5 flex-wrap">{renderBundle(offer.offer)}</div>
