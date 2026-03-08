@@ -41,25 +41,20 @@ export function ResourceAnimator({ state }: Props) {
 
                     // 1. Get the actual SVG container bounds on screen
                     const svgElement = document.querySelector('svg');
-                    const playerElement = document.getElementById(`scoreboard-player-${dist.playerId}`);
+                    const targetElement = document.getElementById(`scoreboard-res-${dist.playerId}`);
                     const hexElement = document.getElementById(`hex-${dist.hexId}`);
 
-                    if (svgElement && playerElement && hexElement) {
+                    if (svgElement && targetElement && hexElement) {
                         const svgRect = svgElement.getBoundingClientRect();
-                        const playerRect = playerElement.getBoundingClientRect();
+                        const targetRect = targetElement.getBoundingClientRect();
                         const hexRect = hexElement.getBoundingClientRect();
 
-                        // 2. The SVG might have internal viewBox scaling. 
-                        // For a centered burst, using the exact getBoundingClientRect of the <g> hex
-                        // works best *if* we find its true center on screen.
                         const startX = hexRect.left + (hexRect.width / 2);
                         const startY = hexRect.top + (hexRect.height / 2);
 
-                        // If startX/Y is way off scale (e.g. 0), fallback to center of SVG
                         const finalStartX = startX > 0 ? startX : svgRect.left + (svgRect.width / 2);
                         const finalStartY = startY > 0 ? startY : svgRect.top + (svgRect.height / 2);
 
-                        // Create a particle for however many resources they got (cap at 3 to prevent lag)
                         const count = Math.min(dist.amount, 3);
                         for (let i = 0; i < count; i++) {
 
@@ -70,14 +65,16 @@ export function ResourceAnimator({ state }: Props) {
                             else if (dist.resource === "ore") color = "#94a3b8";
                             else if (dist.resource === "wool") color = "#a3e635";
 
-                            // End coordinates: targeting the player's scoreboard bounding box
-                            const endX = playerRect.left + (playerRect.width / 2) + (Math.random() * 20 - 10);
-                            const endY = playerRect.top + (playerRect.height / 2) + (Math.random() * 20 - 10);
+                            // End coordinates: targeting the resource UI icon
+                            const endX = targetRect.left + (targetRect.width / 2) + (Math.random() * 10 - 5);
+                            const endY = targetRect.top + (targetRect.height / 2) + (Math.random() * 10 - 5);
+
+                            // Safe unique ID for keyframes without invalid characters (like hyphens at start or dots)
+                            const sanitizedId = `anim_${dist.hexId}_${dist.playerId}_${index}_${i}_${Math.floor(Math.random() * 10000)}`;
 
                             newParticles.push({
-                                id: `anim-${dist.hexId}-${dist.playerId}-${index}-${i}-${Date.now()}`,
+                                id: sanitizedId,
                                 resource: dist.resource,
-                                // Add slight randomness so they burst outward
                                 startX: finalStartX + (Math.random() * 40 - 20),
                                 startY: finalStartY + (Math.random() * 40 - 20),
                                 endX,
@@ -94,11 +91,11 @@ export function ResourceAnimator({ state }: Props) {
                     // Cleanup particles after animation
                     setTimeout(() => {
                         setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-                    }, 1200); // Wait for transition duration + small buffer
+                    }, 1200);
                 }
             }, 100);
         }
-    }, [state.lastDistribution, state.hexes]);
+    }, [state.lastDistribution]); // Important: removed state.hexes from dependencies to prevent unintended double firings
 
     if (particles.length === 0) return null;
 
@@ -111,6 +108,8 @@ export function ResourceAnimator({ state }: Props) {
                 else if (p.resource === "ore") Icon = Mountain;
                 else if (p.resource === "wool") Icon = Cloud;
 
+                const animationName = `fly_${p.id}`;
+
                 return (
                     <div
                         key={p.id}
@@ -120,12 +119,12 @@ export function ResourceAnimator({ state }: Props) {
                             top: p.startY,
                             color: p.color,
                             transform: 'translate(-50%, -50%)',
-                            animation: 'resourceFly 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards'
+                            animation: `${animationName} 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`
                         }}
                     >
                         {/* We use a custom local style tag for the dynamic keyframes per particle */}
                         <style>{`
-                            @keyframes resourceFly {
+                            @keyframes ${animationName} {
                                 0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
                                 20% { opacity: 1; transform: translate(${((p.endX - p.startX) * 0.1)}px, ${((p.endY - p.startY) * 0.1) - 40}px) scale(1.5); }
                                 80% { opacity: 1; transform: translate(${p.endX - p.startX}px, ${p.endY - p.startY}px) scale(1); }
@@ -133,7 +132,7 @@ export function ResourceAnimator({ state }: Props) {
                             }
                         `}</style>
 
-                        <div className="bg-[#1e293b] p-2 rounded-full border border-white/20 shadow-2xl">
+                        <div className="bg-[#1e293b] p-2 rounded-full border border-white/20 shadow-2xl animate-pulse">
                             <Icon size={24} strokeWidth={3} />
                         </div>
                     </div>

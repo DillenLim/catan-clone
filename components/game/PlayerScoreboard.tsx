@@ -59,7 +59,7 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                                     <Crown size={18} className="text-yellow-400" />
                                     <span className="text-[16px] font-black text-yellow-100 font-mono leading-none">{vp}</span>
                                 </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20" title="Resources">
+                                <div id={`scoreboard-res-${p.id}`} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20" title="Resources">
                                     <Package size={18} className="text-blue-400" />
                                     <span className="text-[16px] font-black text-blue-100 font-mono leading-none">{resCount}</span>
                                 </div>
