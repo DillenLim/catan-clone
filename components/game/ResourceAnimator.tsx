@@ -17,6 +17,34 @@ interface AnimationParticle {
     color: string;
 }
 
+// --- Memoized Particle to prevent React re-renders from restarting CSS animations ---
+const AnimatedParticle = React.memo(({ p }: { p: AnimationParticle }) => {
+    let Icon = TreePine;
+    if (p.resource === "brick") Icon = BrickWall;
+    else if (p.resource === "wheat") Icon = Wheat;
+    else if (p.resource === "ore") Icon = Mountain;
+    else if (p.resource === "wool") Icon = Cloud;
+
+    return (
+        <div
+            className="absolute drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+            style={{
+                left: p.startX,
+                top: p.startY,
+                color: p.color,
+                transform: 'translate(-50%, -50%)',
+                animation: `fly_resource_anim 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
+                '--fly-delta-x': `${p.endX - p.startX}px`,
+                '--fly-delta-y': `${p.endY - p.startY}px`
+            } as React.CSSProperties}
+        >
+            <div className="bg-[#1e293b] p-2 rounded-full border border-white/20 shadow-2xl animate-pulse">
+                <Icon size={24} strokeWidth={3} />
+            </div>
+        </div>
+    );
+});
+AnimatedParticle.displayName = 'AnimatedParticle';
 
 export function ResourceAnimator({ state }: Props) {
     const [particles, setParticles] = useState<AnimationParticle[]>([]);
@@ -115,33 +143,9 @@ export function ResourceAnimator({ state }: Props) {
                 }
             `}</style>
 
-            {particles.map(p => {
-                let Icon = TreePine;
-                if (p.resource === "brick") Icon = BrickWall;
-                else if (p.resource === "wheat") Icon = Wheat;
-                else if (p.resource === "ore") Icon = Mountain;
-                else if (p.resource === "wool") Icon = Cloud;
-
-                return (
-                    <div
-                        key={p.id}
-                        className="absolute drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-                        style={{
-                            left: p.startX,
-                            top: p.startY,
-                            color: p.color,
-                            transform: 'translate(-50%, -50%)',
-                            animation: `fly_resource_anim 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
-                            '--fly-delta-x': `${p.endX - p.startX}px`,
-                            '--fly-delta-y': `${p.endY - p.startY}px`
-                        } as React.CSSProperties}
-                    >
-                        <div className="bg-[#1e293b] p-2 rounded-full border border-white/20 shadow-2xl animate-pulse">
-                            <Icon size={24} strokeWidth={3} />
-                        </div>
-                    </div>
-                );
-            })}
+            {particles.map(p => (
+                <AnimatedParticle key={p.id} p={p} />
+            ))}
         </div>
     );
 }
