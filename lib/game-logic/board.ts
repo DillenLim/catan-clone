@@ -114,9 +114,21 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
             if (!valid) continue;
 
             // 4. Check for 3-way resource clumping at vertices
-            // A vertex is shared by 3 hexes if it's an "inner" vertex.
-            // We can check hex types around each hex to see if any 3 meet.
+            // AND check for Vertex Pip Limits (max 13 pips per spot)
+            const getPips = (n: number | null) => {
+                if (!n) return 0;
+                return 6 - Math.abs(7 - n);
+            };
+
+            const resourcePips: Record<string, number[]> = {
+                forest: [], field: [], mountain: [], pasture: [], hill: []
+            };
+
             for (const hex of hexes) {
+                if (hex.type !== "desert") {
+                    resourcePips[hex.type].push(getPips(hex.numberToken));
+                }
+
                 if (hex.type === "desert") continue;
 
                 const neighbors = hexes.filter(h2 =>
@@ -140,7 +152,17 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
                             Math.abs(n1.r - n2.r),
                             Math.abs((-n1.q - n1.r) - (-n2.q - n2.r))
                         ) === 1) {
+                            // Triangle Found (Vertex intersection of hex, n1, n2)
+
+                            // Check Rule: No 3-way resource clumping
                             if (hex.type === n1.type && hex.type === n2.type) {
+                                valid = false;
+                                break;
+                            }
+
+                            // Check Rule: Pip sum limit (Max 13 for competitive balance)
+                            const totalPips = getPips(hex.numberToken) + getPips(n1.numberToken) + getPips(n2.numberToken);
+                            if (totalPips > 13) {
                                 valid = false;
                                 break;
                             }
@@ -149,6 +171,16 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
                     if (!valid) break;
                 }
                 if (!valid) break;
+            }
+            if (!valid) continue;
+
+            // 5. Ensure Resource Diversity (No resource type is "dead")
+            // Every resource must have at least one hex with pips >= 4 (5,6,8,9)
+            for (const [type, pips] of Object.entries(resourcePips)) {
+                if (!pips.some(p => p >= 4)) {
+                    valid = false;
+                    break;
+                }
             }
         }
     };

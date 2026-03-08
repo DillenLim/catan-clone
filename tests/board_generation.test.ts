@@ -63,6 +63,55 @@ describe('Balanced Map Generation', () => {
         }
     });
 
+    it('should never have a vertex with more than 13 pips', () => {
+        const getPips = (n: number | null) => {
+            if (!n) return 0;
+            return 6 - Math.abs(7 - n);
+        };
+
+        for (let i = 0; i < 50; i++) {
+            const { hexes } = generateBoard();
+            for (const h1 of hexes) {
+                const neighbors = hexes.filter(h2 => h2.id !== h1.id && isAdjacent(h1, h2));
+                for (let j = 0; j < neighbors.length; j++) {
+                    for (let k = j + 1; k < neighbors.length; k++) {
+                        const n1 = neighbors[j];
+                        const n2 = neighbors[k];
+                        if (isAdjacent(n1, n2)) {
+                            const totalPips = getPips(h1.numberToken) + getPips(n1.numberToken) + getPips(n2.numberToken);
+                            expect(totalPips).toBeLessThanOrEqual(13);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    it('should ensure every resource has at least one high-probability hex (pips >= 4)', () => {
+        const getPips = (n: number | null) => {
+            if (!n) return 0;
+            return 6 - Math.abs(7 - n);
+        };
+
+        for (let i = 0; i < 50; i++) {
+            const { hexes } = generateBoard();
+            const resourcePips: Record<string, number[]> = {
+                forest: [], field: [], mountain: [], pasture: [], hill: []
+            };
+
+            hexes.forEach(h => {
+                if (h.type !== 'desert') {
+                    resourcePips[h.type].push(getPips(h.numberToken));
+                }
+            });
+
+            for (const [type, pips] of Object.entries(resourcePips)) {
+                const hasGoodHex = pips.some(p => p >= 4);
+                expect(hasGoodHex).toBe(true);
+            }
+        }
+    });
+
     it('should always have exactly one desert with no token', () => {
         const { hexes } = generateBoard();
         const deserts = hexes.filter(h => h.type === 'desert');
