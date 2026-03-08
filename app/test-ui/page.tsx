@@ -142,10 +142,13 @@ export default function TesterPage() {
             if (!prev) return null;
             return {
                 ...prev,
-                lastDistribution: [
-                    { hexId: 1, playerId: "p1", resource: "wood", amount: 1 },
-                    { hexId: 2, playerId: "p1", resource: "brick", amount: 2 }
-                ]
+                lastDistribution: {
+                    id: "test_" + Date.now().toString(),
+                    resources: [
+                        { hexId: 1, playerId: "p1", resource: "wood", amount: 1 },
+                        { hexId: 2, playerId: "p1", resource: "brick", amount: 2 }
+                    ]
+                }
             };
         });
 

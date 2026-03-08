@@ -48,17 +48,17 @@ AnimatedParticle.displayName = 'AnimatedParticle';
 
 export function ResourceAnimator({ state }: Props) {
     const [particles, setParticles] = useState<AnimationParticle[]>([]);
-    const lastDistributionRef = useRef(state.lastDistribution);
+    const lastDistributionRef = useRef(state.lastDistribution?.id || null);
 
     useEffect(() => {
-        if (state.lastDistribution && state.lastDistribution !== lastDistributionRef.current) {
-            lastDistributionRef.current = state.lastDistribution;
+        if (state.lastDistribution && state.lastDistribution.id !== lastDistributionRef.current) {
+            lastDistributionRef.current = state.lastDistribution.id;
 
             // Wait a tiny bit for the layout to settle after the dice roll
             setTimeout(() => {
                 const newParticles: AnimationParticle[] = [];
 
-                state.lastDistribution!.forEach((dist, index) => {
+                state.lastDistribution!.resources.forEach((dist, index) => {
                     // 1. Find the starting pixel coordinates of the Hex
                     const hex = state.hexes.find(h => h.id === dist.hexId);
 

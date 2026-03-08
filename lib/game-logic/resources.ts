@@ -62,10 +62,19 @@ export function distributeResources(roll: number, state: GameState): void {
         }
     }
 
-    state.lastDistribution = distributionLog.filter(log => {
+    const finalLogs = distributionLog.filter(log => {
         const playerReceivedTotal = distribution[log.playerId][log.resource];
         return playerReceivedTotal > 0;
     });
+
+    if (finalLogs.length > 0) {
+        state.lastDistribution = {
+            id: Date.now().toString() + "_" + Math.random().toString(36).slice(2, 7),
+            resources: finalLogs
+        };
+    } else {
+        state.lastDistribution = null;
+    }
 }
 
 export function getHarborRates(playerId: string, vertices: Vertex[]): Partial<Record<string, number>> {

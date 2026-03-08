@@ -43,9 +43,12 @@ describe('Game Actions: lastDistribution Clearing', () => {
             largestArmyCount: 0,
             lastDiceRoll: [3, 3],
             // Pre-populate some old distribution data to ensure it gets wiped!
-            lastDistribution: [
-                { playerId: 'p1', hexId: 1, resource: 'wood', amount: 1 }
-            ],
+            lastDistribution: {
+                id: 'test-123',
+                resources: [
+                    { playerId: 'p1', hexId: 1, resource: 'wood', amount: 1 }
+                ]
+            },
             pendingDiscarders: [],
             pendingTradeOffer: null,
             log: [],

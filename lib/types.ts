@@ -98,7 +98,7 @@ export interface GameState {
   largestArmyPlayerId: string | null;
   largestArmyCount: number;
   lastDiceRoll: [number, number] | null;
-  lastDistribution: { hexId: number; playerId: string; resource: ResourceType; amount: number }[] | null;
+  lastDistribution: { id: string; resources: { hexId: number; playerId: string; resource: ResourceType; amount: number }[] } | null;
   pendingDiscarders: string[];
   pendingTradeOffer: TradeOffer | null;
   log: GameLogEntry[];

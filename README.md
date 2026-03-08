@@ -2,6 +2,11 @@
 
 A real-time, web-based implementation of Catan. This project focuses on strict state synchronization, predictive UI feedback, and a maintainable game engine structure.
 
+## Tech Stack
+- **Frontend**: Next.js 14, React 18, TailwindCSS, Framer Motion
+- **Backend / Multiplayer**: PartyKit, WebSockets
+- **Languages**: TypeScript, HTML, CSS
+
 ## Features
 
 - **Authoritative Server**: Validates rules, resource constraints, and placement distances.
