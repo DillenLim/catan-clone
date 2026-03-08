@@ -78,5 +78,4 @@ Navigate to `http://localhost:3000` to start a session.
 - `npx partykit login`
 - `npx partykit deploy`
 
----
-*Built with precision and passion for modern web gaming.*
+
