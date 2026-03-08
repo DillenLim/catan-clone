@@ -70,6 +70,13 @@ export default class CatanRoom implements Party.Server {
     }
 
     onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+        // If the player is already in the game, mark them as connected immediately
+        const player = this.gameState.players.find(p => p.id === conn.id);
+        if (player) {
+            player.isConnected = true;
+            this.broadcastState();
+        }
+
         // Send current game state to newly connected player
         const sanitized = sanitizeStateForPlayer(this.gameState, conn.id);
         conn.send(JSON.stringify({ type: "STATE_UPDATE", payload: sanitized }));
@@ -248,7 +255,24 @@ export default class CatanRoom implements Party.Server {
         if (player) {
             player.isConnected = false;
 
-            // If host disconnected, promote first connected player
+            // 1. Lobby Cleanup: If game hasn't started, remove the player to free up the slot/color
+            if (this.gameState.status === "lobby") {
+                this.gameState.players = this.gameState.players.filter(p => p.id !== conn.id);
+                // If the host left, reassign host (already handled by logic below, but explicitly check)
+                if (player.isHost && this.gameState.players.length > 0) {
+                    this.gameState.players[0].isHost = true;
+                }
+                this.broadcastState();
+                return;
+            }
+
+            // 2. Clear pending trades if the proposer left
+            if (this.gameState.pendingTradeOffer?.fromPlayerId === conn.id) {
+                this.gameState.pendingTradeOffer = null;
+                this.gameState.log.push({ timestamp: Date.now(), text: "Active trade offer cancelled due to proposer disconnection." });
+            }
+
+            // 3. Re-assign host if the host left during an active game
             if (player.isHost) {
                 const nextHost = this.gameState.players.find(p => p.isConnected);
                 if (nextHost) {
@@ -258,43 +282,58 @@ export default class CatanRoom implements Party.Server {
                 }
             }
 
-            // If it's the disconnected player's turn during active play, auto-skip after a delay
+            // 4. Auto-skip logic for disconnected players (Turns, Discards, Robber moves)
             if (
                 (this.gameState.status === "playing" || this.gameState.status === "initial_placement") &&
-                this.gameState.currentPlayerId === conn.id
+                (this.gameState.currentPlayerId === conn.id || this.gameState.pendingDiscarders.includes(conn.id))
             ) {
                 setTimeout(() => {
                     // Re-check: player might have reconnected
                     const p = this.gameState.players.find(pl => pl.id === conn.id);
-                    if (p && !p.isConnected && this.gameState.currentPlayerId === conn.id) {
-                        if (this.gameState.status === "initial_placement") {
-                            // Specialized skip for initial placement (mimics handlePlaceInitialRoad logic)
-                            if (this.gameState.initialPlacementRound === 1) {
-                                this.gameState.initialPlacementIndex += 1;
-                                if (this.gameState.initialPlacementIndex >= this.gameState.turnOrder.length) {
-                                    this.gameState.initialPlacementRound = 2;
-                                    this.gameState.initialPlacementIndex = this.gameState.turnOrder.length - 1;
-                                }
-                            } else {
-                                this.gameState.initialPlacementIndex -= 1;
-                                if (this.gameState.initialPlacementIndex < 0) {
-                                    this.gameState.status = "playing";
-                                    this.gameState.currentPlayerId = this.gameState.turnOrder[0];
-                                    this.gameState.phase = "roll";
-                                    this.broadcastState();
-                                    return;
-                                }
+                    if (p && !p.isConnected) {
+                        // Handle Discard Phase Timeout
+                        if (this.gameState.phase === "discard" && this.gameState.pendingDiscarders.includes(conn.id)) {
+                            this.gameState.pendingDiscarders = this.gameState.pendingDiscarders.filter(id => id !== conn.id);
+                            this.gameState.log.push({ timestamp: Date.now(), text: `${p.name} timed out. Discard skipped.` });
+
+                            // If everyone is done discarding, move to move_robber
+                            if (this.gameState.pendingDiscarders.length === 0) {
+                                this.gameState.phase = "move_robber";
                             }
-                            this.gameState.currentPlayerId = this.gameState.turnOrder[this.gameState.initialPlacementIndex];
-                            this.gameState.phase = "initial_settlement";
-                        } else {
-                            // Normal play skip
-                            const pIdx = this.gameState.turnOrder.indexOf(conn.id);
-                            this.gameState.currentPlayerId = this.gameState.turnOrder[(pIdx + 1) % this.gameState.turnOrder.length];
-                            this.gameState.phase = "roll";
+                            this.broadcastState();
                         }
-                        this.gameState.log.push({ timestamp: Date.now(), text: `${p.name} disconnected. Turn skipped.` });
-                        this.broadcastState();
+
+                        // Handle Move Robber or Turn Skip
+                        if (this.gameState.currentPlayerId === conn.id) {
+                            if (this.gameState.status === "initial_placement") {
+                                // Specialized skip for initial placement
+                                if (this.gameState.initialPlacementRound === 1) {
+                                    this.gameState.initialPlacementIndex += 1;
+                                    if (this.gameState.initialPlacementIndex >= this.gameState.turnOrder.length) {
+                                        this.gameState.initialPlacementRound = 2;
+                                        this.gameState.initialPlacementIndex = this.gameState.turnOrder.length - 1;
+                                    }
+                                } else {
+                                    this.gameState.initialPlacementIndex -= 1;
+                                    if (this.gameState.initialPlacementIndex < 0) {
+                                        this.gameState.status = "playing";
+                                        this.gameState.currentPlayerId = this.gameState.turnOrder[0];
+                                        this.gameState.phase = "roll";
+                                        this.broadcastState();
+                                        return;
+                                    }
+                                }
+                                this.gameState.currentPlayerId = this.gameState.turnOrder[this.gameState.initialPlacementIndex];
+                                this.gameState.phase = "initial_settlement";
+                            } else {
+                                // Normal play skip
+                                const pIdx = this.gameState.turnOrder.indexOf(conn.id);
+                                this.gameState.currentPlayerId = this.gameState.turnOrder[(pIdx + 1) % this.gameState.turnOrder.length];
+                                this.gameState.phase = "roll";
+                            }
+                            this.gameState.log.push({ timestamp: Date.now(), text: `${p.name} disconnected. Turn skipped.` });
+                            this.broadcastState();
+                        }
                     }
                 }, 15000); // 15 second grace period
             }
