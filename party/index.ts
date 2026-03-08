@@ -81,6 +81,10 @@ export default class CatanRoom implements Party.Server {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Room is full (4 players max)." }));
                     return;
                 }
+                if (this.gameState.players.some(p => p.color === msg.player.color)) {
+                    sender.send(JSON.stringify({ type: "ERROR", message: "That color is already taken. Pick another." }));
+                    return;
+                }
                 const newPlayer: Player = {
                     id: msg.playerId,
                     name: msg.player.name,

@@ -77,15 +77,30 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2 tracking-widest">Color</label>
                                 <div className="flex flex-wrap gap-3">
-                                    {["#d94848", "#4e85d1", "#e08d38", "#f4f4f4", "#50a359", "#8a5c43", "#8950a3", "#d15e9e"].map(c => (
-                                        <button
-                                            type="button"
-                                            key={c}
-                                            onClick={() => setPlayerColor(c)}
-                                            className={`w-10 h-10 rounded-full border-2 transition-transform ${playerColor === c ? "border-white scale-110 shadow-[0_0_15px_currentColor]" : "border-white/10 opacity-70 hover:opacity-100"}`}
-                                            style={{ backgroundColor: c }}
-                                        />
-                                    ))}
+                                    {(() => {
+                                        const allColors = ["#d94848", "#4e85d1", "#e08d38", "#f4f4f4", "#50a359", "#8a5c43", "#8950a3", "#d15e9e"];
+                                        const takenColors = new Set(gameState?.players.map(p => p.color) ?? []);
+                                        return allColors.map(c => {
+                                            const taken = takenColors.has(c);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={c}
+                                                    onClick={() => !taken && setPlayerColor(c)}
+                                                    disabled={taken}
+                                                    className={`relative w-10 h-10 rounded-full border-2 transition-transform ${taken
+                                                        ? "border-white/5 opacity-25 cursor-not-allowed"
+                                                        : playerColor === c
+                                                            ? "border-white scale-110 shadow-[0_0_15px_currentColor]"
+                                                            : "border-white/10 opacity-70 hover:opacity-100"
+                                                        }`}
+                                                    style={{ backgroundColor: c }}
+                                                >
+                                                    {taken && <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-black">✓</span>}
+                                                </button>
+                                            );
+                                        });
+                                    })()}
                                 </div>
                             </div>
                             <button type="submit" className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow">
