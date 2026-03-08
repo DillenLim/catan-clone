@@ -182,7 +182,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             // Knight needs a board click — enter pending mode
             setPendingDevCard("knight");
         } else if (action.type === "PLAY_ROAD_BUILDING") {
-            // Road building needs two board edge clicks — enter pending mode
+            // Dispatch the action to the server first, then enter pending mode
+            dispatchAction(action);
             setPendingDevCard("road_building");
             setRoadBuildingEdge1(null);
         } else {

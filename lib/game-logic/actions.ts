@@ -226,6 +226,15 @@ export function applyAction(
                 return { valid: false, error: `Invalid exchange match (Give equivalent: ${totalEffectiveOffers}, Get: ${totalRequestedAmt}).` };
             }
 
+            // Check bank has enough of each requested resource
+            for (const [res, amt] of Object.entries(action.request)) {
+                if (!amt || amt <= 0) continue;
+                const bankHas = newState.bank[res as keyof ResourceBundle] || 0;
+                if (bankHas < amt) {
+                    return { valid: false, error: `Bank does not have enough ${res} (has ${bankHas}, need ${amt}).` };
+                }
+            }
+
             // Apply trade deductions and grants
             for (const [res, amt] of Object.entries(action.offer)) {
                 if (!amt || amt <= 0) continue;
@@ -326,14 +335,18 @@ export function applyAction(
 
             const knightIdx = newPlayer.devCards.indexOf("knight");
             if (knightIdx === -1) return { valid: false, error: "No knight card." };
+
+            // Validate robber placement BEFORE mutating state
+            if (!isValidRobberPlacement(action.hexId, newState)) {
+                return { valid: false, error: "Invalid hex for robber." };
+            }
+
+            // Now safe to mutate
             newPlayer.devCards.splice(knightIdx, 1);
             newPlayer.knightsPlayed += 1;
             newPlayer.devCardPlayedThisTurn = true;
 
             // Move robber
-            if (!isValidRobberPlacement(action.hexId, newState)) {
-                return { valid: false, error: "Invalid hex for robber." };
-            }
             const prevHex = newState.hexes.find(h => h.hasRobber);
             if (prevHex) prevHex.hasRobber = false;
             const targetHex = newState.hexes.find(h => h.id === action.hexId)!;
@@ -392,18 +405,25 @@ export function applyAction(
 
             const idx = newPlayer.devCards.indexOf("year_of_plenty");
             if (idx === -1) return { valid: false, error: "No Year of Plenty card." };
+
+            // Validate count BEFORE mutating state
+            let totalRequested = 0;
+            for (const [, amt] of Object.entries(action.resources)) {
+                if (!amt || amt <= 0) continue;
+                totalRequested += amt;
+            }
+            if (totalRequested !== 2) return { valid: false, error: "Must take exactly 2 resources." };
+
+            // Now safe to mutate
             newPlayer.devCards.splice(idx, 1);
             newPlayer.devCardPlayedThisTurn = true;
 
-            let totalRequested = 0;
             for (const [res, amt] of Object.entries(action.resources)) {
                 if (!amt || amt <= 0) continue;
-                totalRequested += amt;
                 newPlayer.resources[res as keyof ResourceBundle] = (newPlayer.resources[res as keyof ResourceBundle] || 0) + amt;
                 newState.bank[res as keyof ResourceBundle] = Math.max(0, (newState.bank[res as keyof ResourceBundle] || 0) - amt);
             }
 
-            if (totalRequested !== 2) return { valid: false, error: "Must take exactly 2 resources." };
             const resStrs = Object.entries(action.resources).filter(([_, amt]) => (amt || 0) > 0).map(([res, amt]) => `[${amt} ${res}]`).join(" ");
             newState.log.push({ timestamp: Date.now(), text: `played [year_of_plenty] and took ${resStrs}`, playerId });
             break;

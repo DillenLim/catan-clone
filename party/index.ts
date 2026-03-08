@@ -193,6 +193,7 @@ export default class CatanRoom implements Party.Server {
                 player.devCards.push(card);
                 player.newDevCardThisTurn = true;
                 this.gameState.devCardDeckCount = this.devCardDeckOrder.length;
+                this.gameState.lastDistribution = null; // Prevent animation replay
                 this.gameState.log.push({ timestamp: Date.now(), text: "bought a development card", playerId: msg.playerId });
 
                 this.broadcastState();
