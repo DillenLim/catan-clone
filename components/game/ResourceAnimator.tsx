@@ -17,6 +17,7 @@ interface AnimationParticle {
     color: string;
 }
 
+
 export function ResourceAnimator({ state }: Props) {
     const [particles, setParticles] = useState<AnimationParticle[]>([]);
     const lastDistributionRef = useRef(state.lastDistribution);
@@ -104,14 +105,22 @@ export function ResourceAnimator({ state }: Props) {
 
     return (
         <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+            {/* A single static keyframe definition using CSS variables */}
+            <style>{`
+                @keyframes fly_resource_anim {
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                    20% { opacity: 1; transform: translate(calc(-50% + var(--fly-delta-x) * 0.1), calc(-50% + var(--fly-delta-y) * 0.1 - 40px)) scale(1.5); }
+                    80% { opacity: 1; transform: translate(calc(-50% + var(--fly-delta-x)), calc(-50% + var(--fly-delta-y))) scale(1); }
+                    100% { opacity: 0; transform: translate(calc(-50% + var(--fly-delta-x)), calc(-50% + var(--fly-delta-y))) scale(0.5); }
+                }
+            `}</style>
+
             {particles.map(p => {
                 let Icon = TreePine;
                 if (p.resource === "brick") Icon = BrickWall;
                 else if (p.resource === "wheat") Icon = Wheat;
                 else if (p.resource === "ore") Icon = Mountain;
                 else if (p.resource === "wool") Icon = Cloud;
-
-                const animationName = `fly_${p.id}`;
 
                 return (
                     <div
@@ -122,19 +131,11 @@ export function ResourceAnimator({ state }: Props) {
                             top: p.startY,
                             color: p.color,
                             transform: 'translate(-50%, -50%)',
-                            animation: `${animationName} 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`
-                        }}
+                            animation: `fly_resource_anim 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
+                            '--fly-delta-x': `${p.endX - p.startX}px`,
+                            '--fly-delta-y': `${p.endY - p.startY}px`
+                        } as React.CSSProperties}
                     >
-                        {/* We use a custom local style tag for the dynamic keyframes per particle */}
-                        <style>{`
-                            @keyframes ${animationName} {
-                                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-                                20% { opacity: 1; transform: translate(calc(-50% + ${((p.endX - p.startX) * 0.1)}px), calc(-50% + ${((p.endY - p.startY) * 0.1) - 40}px)) scale(1.5); }
-                                80% { opacity: 1; transform: translate(calc(-50% + ${p.endX - p.startX}px), calc(-50% + ${p.endY - p.startY}px)) scale(1); }
-                                100% { opacity: 0; transform: translate(calc(-50% + ${p.endX - p.startX}px), calc(-50% + ${p.endY - p.startY}px)) scale(0.5); }
-                            }
-                        `}</style>
-
                         <div className="bg-[#1e293b] p-2 rounded-full border border-white/20 shadow-2xl animate-pulse">
                             <Icon size={24} strokeWidth={3} />
                         </div>

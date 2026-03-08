@@ -51,11 +51,20 @@ export default class CatanRoom implements Party.Server {
     }
 
     broadcastState() {
-        // Send customized state to each connected client
-        const connections = Array.from(this.room.getConnections() as Iterable<any>);
-        for (const conn of connections) {
-            const sanitized = sanitizeStateForPlayer(this.gameState, conn.id);
-            conn.send(JSON.stringify({ type: "STATE_UPDATE", payload: sanitized }));
+        if (!this.gameState) return;
+
+        // Send customized state to each connected player
+        for (const player of this.gameState.players) {
+            if (player.isConnected) {
+                const connection = this.room.getConnection(player.id);
+                if (connection) {
+                    const sanitized = sanitizeStateForPlayer(this.gameState, player.id);
+                    connection.send(JSON.stringify({
+                        type: "STATE_UPDATE",
+                        payload: sanitized
+                    }));
+                }
+            }
         }
     }
 
