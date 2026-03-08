@@ -18,7 +18,6 @@ export function sanitizeStateForPlayer(state: GameState, forPlayerId: string): a
             (player as any).devCards = { devCardCount: player.devCards.length };
 
             // Hide visibility lock status flags
-            delete (player as any).newDevCardThisTurn;
             delete (player as any).devCardPlayedThisTurn;
             delete (player as any).devCardsBoughtThisTurn;
         } else {

@@ -1,5 +1,7 @@
 export type ResourceType = "wood" | "brick" | "wool" | "wheat" | "ore";
-export type ResourceBundle = Partial<Record<ResourceType, number>>;
+export const RESOURCE_TYPES: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
+export type ResourceBundle = Record<ResourceType, number>;
+export type ResourceInput = Partial<Record<ResourceType, number>>; // For action payloads where not all resources are specified
 export type HexType = "forest" | "field" | "mountain" | "pasture" | "hill" | "desert";
 export type DevCardType = "knight" | "road_building" | "year_of_plenty" | "monopoly" | "victory_point";
 
@@ -9,8 +11,7 @@ export type TurnPhase =
   | "roll"
   | "action"
   | "discard"
-  | "move_robber"
-  | "steal";
+  | "move_robber";
 
 export interface Hex {
   id: number;
@@ -44,7 +45,6 @@ export interface Player {
   color: string;
   resources: ResourceBundle;
   devCards: DevCardType[];
-  newDevCardThisTurn: boolean;
   devCardPlayedThisTurn: boolean;
   devCardsBoughtThisTurn: number[]; // indices into devCards of cards bought this turn (can't be played same turn)
   knightsPlayed: number;
@@ -61,8 +61,8 @@ export interface Player {
 export interface TradeOffer {
   id: string;
   fromPlayerId: string;
-  offer: ResourceBundle;
-  request: ResourceBundle;
+  offer: ResourceInput;
+  request: ResourceInput;
 }
 
 export interface GameLogEntry {
@@ -110,24 +110,24 @@ export interface GameState {
 export type GameAction =
   | { type: "ROLL_DICE" }
   | { type: "MOVE_ROBBER"; hexId: number; stealFromPlayerId?: string }
-  | { type: "DISCARD_CARDS"; cards: ResourceBundle }
+  | { type: "DISCARD_CARDS"; cards: ResourceInput }
   | { type: "BUILD_ROAD"; edgeId: number }
   | { type: "BUILD_SETTLEMENT"; vertexId: number }
   | { type: "BUILD_CITY"; vertexId: number }
   | { type: "BUY_DEV_CARD" }
   | { type: "PLAY_KNIGHT"; hexId: number; stealFromPlayerId?: string }
   | { type: "PLAY_ROAD_BUILDING" }
-  | { type: "PLAY_YEAR_OF_PLENTY"; resources: Partial<Record<ResourceType, number>> }
+  | { type: "PLAY_YEAR_OF_PLENTY"; resources: ResourceInput }
   | { type: "PLAY_MONOPOLY"; resource: ResourceType }
-  | { type: "BANK_TRADE"; offer: ResourceBundle; request: ResourceBundle }
-  | { type: "OFFER_TRADE"; offer: ResourceBundle; request: ResourceBundle }
+  | { type: "BANK_TRADE"; offer: ResourceInput; request: ResourceInput }
+  | { type: "OFFER_TRADE"; offer: ResourceInput; request: ResourceInput }
   | { type: "ACCEPT_TRADE"; offerId: string }
   | { type: "REJECT_TRADE"; offerId: string }
   | { type: "CANCEL_TRADE" }
   | { type: "END_TURN" }
   | { type: "PLACE_INITIAL_SETTLEMENT"; vertexId: number }
   | { type: "PLACE_INITIAL_ROAD"; edgeId: number }
-  | { type: "DEBUG_ADD_RESOURCES"; resources: ResourceBundle };
+  | { type: "DEBUG_ADD_RESOURCES"; resources: ResourceInput };
 
 export type ClientMessagePayload =
   | { type: "JOIN"; player: { name: string; color: string } }

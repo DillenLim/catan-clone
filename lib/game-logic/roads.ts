@@ -4,29 +4,6 @@ export function calculateLongestRoad(playerId: string, edges: Edge[], vertices: 
     const playerEdges = edges.filter(e => e.road?.playerId === playerId);
     if (playerEdges.length === 0) return 0;
 
-    // Build adjacency graph for player's roads
-    // Nodes are vertex IDs. A player road connects two vertex IDs.
-    // We cannot traverse through a vertex occupied by an opponent's building.
-
-    const adj = new Map<number, number[]>();
-    for (const e of playerEdges) {
-        const [v1, v2] = e.vertexIds;
-
-        // Check if vertex is blocked by opponent
-        const vert1 = vertices.find(v => v.id === v1);
-        const vert2 = vertices.find(v => v.id === v2);
-
-        // Can traverse OUT of a blocked vertex if we started there, but standard rule: 
-        // an opponent's settlement "breaks" the road.
-        const isBlocked = (v: Vertex) => v.building && v.building.playerId !== playerId;
-
-        if (!adj.has(v1)) adj.set(v1, []);
-        if (!adj.has(v2)) adj.set(v2, []);
-
-        // Only add edge to graph if neither vertex blocks passage, OR we just consider edges
-        // Actually, DFS on edges is better than DFS on vertices to find longest path without reusing edges.
-    }
-
     let maxLength = 0;
 
     // DFS function to find longest path from a given vertex, taking care not to reuse edges

@@ -1,12 +1,12 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ResourceBundle, GameState } from "../../lib/types";
+import { ResourceBundle, ResourceInput, ResourceType, GameState } from "../../lib/types";
 
 interface Props {
     state: GameState;
     myPlayerId: string;
-    onDiscard: (cards: ResourceBundle) => void;
+    onDiscard: (cards: ResourceInput) => void;
 }
 
 import { RESOURCE_ICONS, RESOURCE_COLORS } from "../game/ResourceHand";
@@ -14,7 +14,7 @@ import { RESOURCE_ICONS, RESOURCE_COLORS } from "../game/ResourceHand";
 export function DiscardModal({ state, myPlayerId, onDiscard }: Props) {
     const me = state.players.find(p => p.id === myPlayerId);
 
-    const [selected, setSelected] = useState<ResourceBundle>(
+    const [selected, setSelected] = useState<ResourceInput>(
         { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 }
     );
 
@@ -26,15 +26,15 @@ export function DiscardModal({ state, myPlayerId, onDiscard }: Props) {
     const totalSelected = Object.values(selected).reduce((s, v) => s + (v || 0), 0);
 
     const selectCard = (res: string) => {
-        const currentlySelected = selected[res as keyof ResourceBundle] || 0;
-        const totalOwned = me.resources[res as keyof ResourceBundle] || 0;
+        const currentlySelected = selected[res as ResourceType] || 0;
+        const totalOwned = me.resources[res as ResourceType] || 0;
         if (currentlySelected < totalOwned && totalSelected < mustDiscard) {
             setSelected(prev => ({ ...prev, [res]: currentlySelected + 1 }));
         }
     };
 
     const deselectCard = (res: string) => {
-        const currentlySelected = selected[res as keyof ResourceBundle] || 0;
+        const currentlySelected = selected[res as ResourceType] || 0;
         if (currentlySelected > 0) {
             setSelected(prev => ({ ...prev, [res]: currentlySelected - 1 }));
         }
@@ -42,7 +42,7 @@ export function DiscardModal({ state, myPlayerId, onDiscard }: Props) {
 
     const ready = totalSelected === mustDiscard;
 
-    const resourceOrder: (keyof ResourceBundle)[] = ["wood", "brick", "wool", "wheat", "ore"];
+    const resourceOrder: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
 
     return (
         <motion.div

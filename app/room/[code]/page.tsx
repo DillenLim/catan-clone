@@ -18,7 +18,7 @@ import { DiscardModal } from "../../../components/ui/DiscardModal";
 import { DevCardModal } from "../../../components/ui/DevCardModal";
 import { ResourceAnimator } from "../../../components/game/ResourceAnimator";
 import { DebugControls } from "../../../components/game/DebugControls";
-import { DevCardType, ResourceBundle } from "../../../lib/types";
+import { DevCardType, ResourceBundle, ResourceInput } from "../../../lib/types";
 
 export default function RoomPage({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -191,7 +191,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         }
     };
 
-    const handleDiscard = (cards: ResourceBundle) => {
+    const handleDiscard = (cards: ResourceInput) => {
         dispatchAction({ type: "DISCARD_CARDS", cards });
     };
 

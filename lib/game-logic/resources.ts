@@ -1,35 +1,31 @@
-import { GameState, ResourceBundle, Player, Vertex } from "../types";
+import { GameState, ResourceBundle, ResourceType, Player, Vertex } from "../types";
 
-export function distributeResources(roll: number, state: GameState): GameState {
-    if (roll === 7) return state; // Robber phase handles this
+export function distributeResources(roll: number, state: GameState): void {
+    if (roll === 7) return; // Robber phase handles this
 
-    // Find all hexes matching roll
     const yieldingHexes = state.hexes.filter(h => h.numberToken === roll && !h.hasRobber);
-    if (yieldingHexes.length === 0) return state;
+    if (yieldingHexes.length === 0) return;
 
-    // Map players to what they should receive
     const distribution: Record<string, ResourceBundle> = {};
     state.players.forEach(p => distribution[p.id] = { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 });
     const totalNeeded: ResourceBundle = { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 };
 
-    const distributionLog: { hexId: number; playerId: string; resource: import("../types").ResourceType; amount: number }[] = [];
+    const distributionLog: { hexId: number; playerId: string; resource: ResourceType; amount: number }[] = [];
 
     for (const hex of yieldingHexes) {
         if (hex.type === "desert") continue;
-        const res = hex.type === "forest" ? "wood" :
+        const res: ResourceType = hex.type === "forest" ? "wood" :
             hex.type === "field" ? "wheat" :
                 hex.type === "mountain" ? "ore" :
                     hex.type === "pasture" ? "wool" : "brick";
 
-        // Find all adjacent vertices with buildings
         const adjacentVertices = state.vertices.filter(v => v.adjacentHexIds.includes(hex.id));
         for (const v of adjacentVertices) {
             if (v.building) {
                 const amount = v.building.type === "city" ? 2 : 1;
-                distribution[v.building.playerId][res] = (distribution[v.building.playerId][res] || 0) + amount;
-                totalNeeded[res] = (totalNeeded[res] || 0) + amount;
+                distribution[v.building.playerId][res] += amount;
+                totalNeeded[res] += amount;
 
-                // Record the specific source hex for animations
                 distributionLog.push({
                     hexId: hex.id,
                     playerId: v.building.playerId,
@@ -40,26 +36,24 @@ export function distributeResources(roll: number, state: GameState): GameState {
         }
     }
 
-    // Check bank limits (standard rule: if bank doesn't have enough of a resource, nobody gets any of that resource)
-    // But wait, if bank runs out, technically they get 0. Let's simplify and just drain the bank.
+    // Check bank limits: if bank doesn't have enough, nobody gets that resource
     for (const [res, total] of Object.entries(totalNeeded)) {
-        const bankHas = state.bank[res as keyof ResourceBundle] || 0;
+        const r = res as ResourceType;
+        const bankHas = state.bank[r];
         if (bankHas < total) {
-            // Bank doesn't have enough: no one gets this resource this turn for this roll
             for (const p of state.players) {
-                distribution[p.id][res as keyof ResourceBundle] = 0;
+                distribution[p.id][r] = 0;
             }
         } else {
-            // Deduct from bank
-            state.bank[res as keyof ResourceBundle] = bankHas - total;
+            state.bank[r] -= total;
         }
     }
 
     for (const p of state.players) {
         const receivedStrs: string[] = [];
         for (const [res, amt] of Object.entries(distribution[p.id])) {
-            if (amt && amt > 0) {
-                p.resources[res as keyof ResourceBundle] = (p.resources[res as keyof ResourceBundle] || 0) + (amt as number);
+            if (amt > 0) {
+                p.resources[res as ResourceType] += amt;
                 receivedStrs.push(`[${amt} ${res}]`);
             }
         }
@@ -68,13 +62,10 @@ export function distributeResources(roll: number, state: GameState): GameState {
         }
     }
 
-    // Attach the layout data for animations. If someone got 0 because of bank limits, we filter them out.
     state.lastDistribution = distributionLog.filter(log => {
-        const playerReceivedTotal = distribution[log.playerId][log.resource] || 0;
+        const playerReceivedTotal = distribution[log.playerId][log.resource];
         return playerReceivedTotal > 0;
     });
-
-    return state;
 }
 
 export function getHarborRates(playerId: string, vertices: Vertex[]): Partial<Record<string, number>> {

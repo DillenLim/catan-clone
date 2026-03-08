@@ -1,4 +1,4 @@
-import { GameState, Vertex, Edge, Player, ResourceBundle, TurnPhase, GameAction } from "../types";
+import { GameState, Vertex, Player, ResourceBundle, ResourceInput, ResourceType, TurnPhase, GameAction } from "../types";
 
 export function isPlayerTurn(playerId: string, state: GameState): boolean {
     return state.currentPlayerId === playerId;
@@ -18,10 +18,11 @@ export function isValidPhase(action: GameAction, phase: TurnPhase): boolean {
     }
 }
 
-export function canAfford(cost: ResourceBundle, player: Player): boolean {
+export function canAfford(cost: ResourceInput, player: Player): boolean {
     for (const [res, amt] of Object.entries(cost)) {
-        const pAmt = player.resources[res as keyof ResourceBundle] || 0;
-        if (pAmt < (amt as number)) return false;
+        if (!amt || amt <= 0) continue;
+        const pAmt = player.resources[res as ResourceType] || 0;
+        if (pAmt < amt) return false;
     }
     return true;
 }
@@ -70,13 +71,6 @@ export function isValidRoadPlacement(edgeId: number, state: GameState, playerId:
             return adjEdge?.road?.playerId === playerId;
         });
     };
-
-    if (state.phase === "initial_road") {
-        // In initial setup, road MUST connect to the settlement just placed.
-        // We infer the settlement by looking at player's settlements that have 0 connecting roads.
-        // (A bit hacky, normally we'd pass the strictly required attached vertex, but finding lonely settlements works)
-        return checkConnection(v1) || checkConnection(v2);
-    }
 
     return checkConnection(v1) || checkConnection(v2);
 }

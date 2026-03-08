@@ -87,7 +87,6 @@ export default class CatanRoom implements Party.Server {
                     color: msg.player.color,
                     resources: { wood: 0, brick: 0, wool: 0, wheat: 0, ore: 0 },
                     devCards: [],
-                    newDevCardThisTurn: false,
                     devCardPlayedThisTurn: false,
                     devCardsBoughtThisTurn: [],
                     knightsPlayed: 0,
@@ -192,7 +191,6 @@ export default class CatanRoom implements Party.Server {
                 // Give card
                 const card = this.devCardDeckOrder.pop()!;
                 player.devCards.push(card);
-                player.newDevCardThisTurn = true;
                 player.devCardsBoughtThisTurn.push(player.devCards.length - 1); // Track the index
                 this.gameState.devCardDeckCount = this.devCardDeckOrder.length;
                 this.gameState.lastDistribution = null; // Prevent animation replay

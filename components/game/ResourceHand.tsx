@@ -1,5 +1,5 @@
 import React from "react";
-import { GameState, ResourceBundle } from "../../lib/types";
+import { GameState, ResourceBundle, ResourceType } from "../../lib/types";
 import { TreePine, BrickWall, Wheat, Mountain, Cloud } from "lucide-react";
 
 interface Props {
@@ -27,7 +27,7 @@ export function ResourceHand({ state, myPlayerId }: Props) {
     const me = state.players.find(p => p.id === myPlayerId);
     if (!me) return null;
 
-    const resourceOrder: (keyof ResourceBundle)[] = ["wood", "brick", "wool", "wheat", "ore"];
+    const resourceOrder: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
 
     return (
         <div className="glass-dark rounded-2xl p-2 px-4 shadow-xl border border-white/5 w-fit mx-auto">

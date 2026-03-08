@@ -1,5 +1,5 @@
 import React from "react";
-import { GameState, ResourceBundle } from "../../lib/types";
+import { GameState, ResourceBundle, ResourceType } from "../../lib/types";
 import { TreePine, BrickWall, Cloud, Wheat, Mountain } from "lucide-react";
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
 }
 
 const BANK_MAX = 19;
-const resourceOrder: (keyof ResourceBundle)[] = ["wood", "brick", "wool", "wheat", "ore"];
+const resourceOrder: ResourceType[] = ["wood", "brick", "wool", "wheat", "ore"];
 
 const RESOURCE_META: Record<string, { icon: React.ReactNode; bar: string; text: string }> = {
     wood: { icon: <TreePine size={14} strokeWidth={2.5} />, bar: "bg-emerald-500", text: "text-emerald-400" },

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { GameState, ResourceBundle, ResourceType, GameAction, TradeOffer } from "../../lib/types";
+import { GameState, ResourceBundle, ResourceInput, ResourceType, GameAction, TradeOffer } from "../../lib/types";
 import { getHarborRates } from "../../lib/game-logic/resources";
 import { TreePine, BrickWall, Cloud, Wheat, Mountain, Minus, X, ArrowLeftRight, Building2, Users, RefreshCw } from "lucide-react";
 
@@ -71,7 +71,7 @@ function IncomingOfferBanner({ offer, myId, players, onDispatch }: {
     const isMyOffer = offer.fromPlayerId === myId;
     const offerorName = players.find(p => p.id === offer.fromPlayerId)?.name ?? "?";
 
-    const renderBundle = (bundle: ResourceBundle) =>
+    const renderBundle = (bundle: ResourceInput) =>
         Object.entries(bundle).filter(([, v]) => (v || 0) > 0).map(([res, amt]) => (
             <span key={res} className="flex items-center gap-0.5">
                 {ICON_MAP_SM[res as ResourceType]}
