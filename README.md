@@ -1,33 +1,54 @@
 # Catan Clone
 
+[![Next.js](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/react-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Framer Motion](https://img.shields.io/badge/Framer--Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)](https://www.framer.com/motion/)
+[![PartyKit](https://img.shields.io/badge/PartyKit-FFB000?style=for-the-badge&logo=partykit&logoColor=white)](https://www.partykit.io/)
+
 A real-time, web-based implementation of Catan. This project focuses on strict state synchronization, predictive UI feedback, and a maintainable game engine structure.
 
-## Tech Stack
-- **Frontend**: Next.js 14, React 18, TailwindCSS, Framer Motion
-- **Backend / Multiplayer**: PartyKit, WebSockets
-- **Languages**: TypeScript, HTML, CSS
+<!-- Replace this with a high-quality screenshot of your game board! -->
+![Catan Gameplay Showcase](https://via.placeholder.com/1200x600?text=Catan+Gameplay+Showcase+Screenshot)
+
+## Architecture
+
+The system uses an authoritative server pattern where the client sends intents and the server broadcasts the validated state.
+
+```mermaid
+graph LR
+    User([User]) -- Action --> Client[Next.js Client]
+    Client -- WebSocket --> PK[PartyKit Server]
+    PK -- Validate/Apply --> Logic[Game Logic Engine]
+    Logic -- New State --> PK
+    PK -- Broadcast State --> Client
+    Client -- Render Components --> User
+```
 
 ## Features
 
-- **Authoritative Server**: Validates rules, resource constraints, and placement distances.
-- **Predictive Rendering**: Valid builds show translucent previews before socket confirmation.
-- **Synchronized Game Loop**: Strict enforcement of Rolling -> Trading -> Building sequences.
-- **Rich Logging**: Real-time event log parsing actions into inline UI badges.
+- **Authoritative Server**: Validates rules, resource constraints, and placement distances server-side.
+- **Predictive Rendering**: Valid builds show translucent previews before socket confirmation for zero-latency feel.
+- **Synchronized Game Loop**: Strict enforcement of Rolling → Trading → Building sequences.
+- **Rich Event Logging**: Real-time event log parsing actions into interactive inline UI badges.
 - **Robber Mechanics**: Interactive discard modal acting directly on resource elements.
+- **Fluid Animations**: Framer Motion powered resource flights from hexes to the scoreboard.
 
-## Architecture & State
+## Project Structure
 
-### 1. Game State Engine (`lib/game-logic/`)
-The engine is written as pure functions. The `GameState` object contains arrays of `Hex`, `Vertex`, and `Edge` objects modeled via an accurate coordinate grid. Functions like `distributeResources` and `canAfford` execute deterministically, allowing parallel validation on both client and server.
-
-### 2. Synchronization (`party/index.ts`)
-**PartyKit (WebSockets)** runs the authoritative backend. 
-- Clients emit serializeable intent objects (e.g., `BUILD_SETTLEMENT`, `OFFER_TRADE`).
-- The server applies the action to the in-memory state.
-- The server broadcasts the mutated state to all concurrent room members.
-
-### 3. Client Rendering (`app/room/[code]/page.tsx`)
-**Next.js 14 (App Router)** drives the frontend. The `HexBoard` component translates the abstract coordinate system into absolute pixel coordinates for rendering. Framer Motion handles complex layout shifts (like resource distribution flyouts) independent of the core React render cycle.
+```text
+├── app/                  # Next.js App Router (UI Pages & Layouts)
+├── components/           # React Components (Board, Game, UI)
+│   ├── board/            # SVG Hex board rendering logic
+│   └── game/             # Game-specific UI (Scoreboard, Modals)
+├── lib/                  # Shared Utilities & Logic
+│   ├── game-logic/       # Core immutable game engine (Rules, Resource dist)
+│   └── types.ts          # Central TypeScript interfaces
+├── party/                # PartyKit authoritative server
+├── public/               # Static assets
+└── tests/                # Unit tests & Game simulations
+```
 
 ## Local Setup
 
@@ -45,22 +66,18 @@ The engine is written as pure functions. The `GameState` object contains arrays 
    ```bash
    npx partykit dev
    ```
+
 Navigate to `http://localhost:3000` to start a session.
 
-## Vercel Deployment
+## Deployment
 
-This application utilizes two separate domains: one for the static/serverless frontend, and one for the persistent WebSocket backend.
+### 1. Deploy Frontend (Next.js)
+- Import the repository in your **Vercel** dashboard.
+- Set `NEXT_PUBLIC_PARTYKIT_HOST` to your deployed PartyKit URL.
 
-1. **Deploy Frontend (Next.js):**
-   - Push your repository to GitHub.
-   - Import the repository in your Vercel dashboard.
-   - Vercel will automatically detect Next.js and build it.
-   - *Note: Once the backend is deployed, you will need to set an Environment Variable in Vercel pointing to the backend URL (e.g., `NEXT_PUBLIC_PARTYKIT_HOST`).*
+### 2. Deploy Backend (PartyKit)
+- `npx partykit login`
+- `npx partykit deploy`
 
-2. **Deploy Backend (PartyKit):**
-   - Ensure you are logged into the PartyKit CLI: `npx partykit login`
-   - Run the deploy script from your terminal:
-     ```bash
-     npx partykit deploy
-     ```
-   - Copy the deployed PartyKit URL and add it to your Next.js Vercel environment variables. Redeploy Next.js if necessary.
+---
+*Built with precision and passion for modern web gaming.*
