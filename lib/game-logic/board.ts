@@ -78,27 +78,78 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
                 tempHexMap.set(`${hex.q},${hex.r}`, hex);
             }
 
-            // 3. Check for red number (6/8) adjacency
+            // 3. Check for number adjacency (no two same numbers next to each other)
+            // AND ensure no red numbers (6/8) are adjacent
             for (const hex of hexes) {
-                if (hex.numberToken === 6 || hex.numberToken === 8) {
-                    const neighbors = hexes.filter(h2 =>
-                        h2.id !== hex.id &&
-                        Math.max(
-                            Math.abs(hex.q - h2.q),
-                            Math.abs(hex.r - h2.r),
-                            Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
-                        ) === 1
-                    );
-                    if (neighbors.some(n => n.numberToken === 6 || n.numberToken === 8)) {
+                if (hex.numberToken === null) continue;
+
+                const neighbors = hexes.filter(h2 =>
+                    h2.id !== hex.id &&
+                    Math.max(
+                        Math.abs(hex.q - h2.q),
+                        Math.abs(hex.r - h2.r),
+                        Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
+                    ) === 1
+                );
+
+                for (const n of neighbors) {
+                    if (n.numberToken === null) continue;
+
+                    // Case 1: Same number adjacency
+                    if (n.numberToken === hex.numberToken) {
+                        valid = false;
+                        break;
+                    }
+
+                    // Case 2: Red number adjacency
+                    if ((hex.numberToken === 6 || hex.numberToken === 8) &&
+                        (n.numberToken === 6 || n.numberToken === 8)) {
                         valid = false;
                         break;
                     }
                 }
+                if (!valid) break;
             }
 
+            if (!valid) continue;
+
             // 4. Check for 3-way resource clumping at vertices
-            // (Simple version: if a vertex is shared by 3 hexes of same type, invalid)
-            // This is handled implicitly by the shuffling in most cases, but we can add a check if needed.
+            // A vertex is shared by 3 hexes if it's an "inner" vertex.
+            // We can check hex types around each hex to see if any 3 meet.
+            for (const hex of hexes) {
+                if (hex.type === "desert") continue;
+
+                const neighbors = hexes.filter(h2 =>
+                    h2.id !== hex.id &&
+                    Math.max(
+                        Math.abs(hex.q - h2.q),
+                        Math.abs(hex.r - h2.r),
+                        Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
+                    ) === 1
+                );
+
+                // Check for triangles of neighbors (hexes that meet at a vertex)
+                for (let i = 0; i < neighbors.length; i++) {
+                    for (let j = i + 1; j < neighbors.length; j++) {
+                        const n1 = neighbors[i];
+                        const n2 = neighbors[j];
+
+                        // If n1 and n2 are also neighbors, they form a triangle with 'hex'
+                        if (Math.max(
+                            Math.abs(n1.q - n2.q),
+                            Math.abs(n1.r - n2.r),
+                            Math.abs((-n1.q - n1.r) - (-n2.q - n2.r))
+                        ) === 1) {
+                            if (hex.type === n1.type && hex.type === n2.type) {
+                                valid = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!valid) break;
+                }
+                if (!valid) break;
+            }
         }
     };
 

@@ -11,6 +11,44 @@ describe('Balanced Map Generation', () => {
         ) === 1;
     };
 
+    it('should never have adjacent identical numbers', () => {
+        for (let i = 0; i < 50; i++) {
+            const { hexes } = generateBoard();
+            for (const h1 of hexes) {
+                if (h1.numberToken === null) continue;
+                for (const h2 of hexes) {
+                    if (h1.id === h2.id || h2.numberToken === null) continue;
+                    if (isAdjacent(h1, h2)) {
+                        expect(h1.numberToken).not.toBe(h2.numberToken);
+                    }
+                }
+            }
+        }
+    });
+
+    it('should never have 3 identical resources meeting at a vertex', () => {
+        for (let i = 0; i < 50; i++) {
+            const { hexes } = generateBoard();
+            for (const h1 of hexes) {
+                if (h1.type === 'desert') continue;
+                const neighbors = hexes.filter(h2 => h2.id !== h1.id && isAdjacent(h1, h2));
+
+                for (let j = 0; j < neighbors.length; j++) {
+                    for (let k = j + 1; k < neighbors.length; k++) {
+                        const n1 = neighbors[j];
+                        const n2 = neighbors[k];
+                        if (isAdjacent(n1, n2)) {
+                            // Triangle found
+                            const types = [h1.type, n1.type, n2.type];
+                            const allSame = types.every(t => t === h1.type);
+                            expect(allSame).toBe(false);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     it('should never have adjacent red numbers (6 or 8)', () => {
         for (let i = 0; i < 50; i++) {
             const { hexes } = generateBoard();
