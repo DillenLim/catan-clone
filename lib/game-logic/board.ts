@@ -30,46 +30,63 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
     const numberTokens = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
 
     const assignHexes = () => {
-        let terrains: HexType[] = [];
-        for (const [t, count] of Object.entries(terrainCounts)) {
-            for (let i = 0; i < count; i++) terrains.push(t as HexType);
-        }
-        const tokens = shuffleArray([...numberTokens]);
+        // Standard A-R token sequence for the spiral
+        const tokenSequence = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11];
 
-        // Find desert first
-        const desertIndex = terrains.indexOf("desert");
-        const desertHex = hexes[desertIndex];
-        desertHex.type = "desert";
-        desertHex.numberToken = null;
-        desertHex.hasRobber = true;
+        // Define the spiral order for hexes (Axial coordinates)
+        // This is a fixed spiral starting from a corner and moving inward.
+        const spiralCoords = [
+            { q: 0, r: -2 }, { q: 1, r: -2 }, { q: 2, r: -2 }, { q: 2, r: -1 }, { q: 2, r: 0 },
+            { q: 1, r: 1 }, { q: 0, r: 2 }, { q: -1, r: 2 }, { q: -2, r: 2 }, { q: -2, r: 1 },
+            { q: -2, r: 0 }, { q: -1, r: -1 },
+            // Inner ring
+            { q: 0, r: -1 }, { q: 1, r: -1 }, { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 }, { q: -1, r: 0 },
+            // Center
+            { q: 0, r: 0 }
+        ];
 
-        const remainingHexes = hexes.filter(h => h.id !== desertHex.id);
-        const remainingTerrains = terrains.filter(t => t !== "desert");
-
-        // Simple adjacency check for 6/8
-        let attempts = 0;
         let valid = false;
+        let attempts = 0;
 
-        while (!valid && attempts < 100) {
+        while (!valid && attempts < 200) {
             attempts++;
-            const ShuffledTokens = shuffleArray(tokens);
             valid = true;
 
-            // Tentatively assign
-            for (let i = 0; i < remainingHexes.length; i++) {
-                remainingHexes[i].type = remainingTerrains[i];
-                remainingHexes[i].numberToken = ShuffledTokens[i];
+            // 1. Shuffle terrains
+            let terrains: HexType[] = [];
+            for (const [t, count] of Object.entries(terrainCounts)) {
+                for (let i = 0; i < count; i++) terrains.push(t as HexType);
+            }
+            terrains = shuffleArray(terrains);
+
+            // 2. Assign terrains and tokens along the spiral
+            let tokenIdx = 0;
+            const tempHexMap = new Map<string, Hex>();
+
+            for (let i = 0; i < spiralCoords.length; i++) {
+                const coord = spiralCoords[i];
+                const hex = hexes.find(h => h.q === coord.q && h.r === coord.r)!;
+                hex.type = terrains[i];
+
+                if (hex.type === "desert") {
+                    hex.numberToken = null;
+                    hex.hasRobber = true;
+                } else {
+                    hex.numberToken = tokenSequence[tokenIdx++];
+                    hex.hasRobber = false;
+                }
+                tempHexMap.set(`${hex.q},${hex.r}`, hex);
             }
 
-            // Check 6/8 adjacency
-            for (const h1 of remainingHexes) {
-                if (h1.numberToken === 6 || h1.numberToken === 8) {
-                    const neighbors = remainingHexes.filter(h2 =>
-                        h2.id !== h1.id &&
+            // 3. Check for red number (6/8) adjacency
+            for (const hex of hexes) {
+                if (hex.numberToken === 6 || hex.numberToken === 8) {
+                    const neighbors = hexes.filter(h2 =>
+                        h2.id !== hex.id &&
                         Math.max(
-                            Math.abs(h1.q - h2.q),
-                            Math.abs(h1.r - h2.r),
-                            Math.abs((-h1.q - h1.r) - (-h2.q - h2.r))
+                            Math.abs(hex.q - h2.q),
+                            Math.abs(hex.r - h2.r),
+                            Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
                         ) === 1
                     );
                     if (neighbors.some(n => n.numberToken === 6 || n.numberToken === 8)) {
@@ -78,6 +95,10 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
                     }
                 }
             }
+
+            // 4. Check for 3-way resource clumping at vertices
+            // (Simple version: if a vertex is shared by 3 hexes of same type, invalid)
+            // This is handled implicitly by the shuffling in most cases, but we can add a check if needed.
         }
     };
 
