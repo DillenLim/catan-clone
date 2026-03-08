@@ -32,6 +32,7 @@ export function ResourceAnimator({ state }: Props) {
                 state.lastDistribution!.forEach((dist, index) => {
                     // 1. Find the starting pixel coordinates of the Hex
                     const hex = state.hexes.find(h => h.id === dist.hexId);
+
                     if (!hex) return;
 
                     // We need to map the internal SVG coords to screen coords.
@@ -40,7 +41,7 @@ export function ResourceAnimator({ state }: Props) {
                     // The safest bet is finding the DOM elements directly to be window-resize resilient.
 
                     // 1. Get the actual SVG container bounds on screen
-                    const svgElement = document.querySelector('svg');
+                    const svgElement = document.getElementById('catan-board-svg');
                     const targetElement = document.getElementById(`scoreboard-res-${dist.playerId}`);
                     const hexElement = document.getElementById(`hex-${dist.hexId}`);
 
@@ -94,6 +95,8 @@ export function ResourceAnimator({ state }: Props) {
                     }, 1200);
                 }
             }, 100);
+        } else if (!state.lastDistribution) {
+            lastDistributionRef.current = null;
         }
     }, [state.lastDistribution]); // Important: removed state.hexes from dependencies to prevent unintended double firings
 
@@ -125,10 +128,10 @@ export function ResourceAnimator({ state }: Props) {
                         {/* We use a custom local style tag for the dynamic keyframes per particle */}
                         <style>{`
                             @keyframes ${animationName} {
-                                0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
-                                20% { opacity: 1; transform: translate(${((p.endX - p.startX) * 0.1)}px, ${((p.endY - p.startY) * 0.1) - 40}px) scale(1.5); }
-                                80% { opacity: 1; transform: translate(${p.endX - p.startX}px, ${p.endY - p.startY}px) scale(1); }
-                                100% { opacity: 0; transform: translate(${p.endX - p.startX}px, ${p.endY - p.startY}px) scale(0.5); }
+                                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                                20% { opacity: 1; transform: translate(calc(-50% + ${((p.endX - p.startX) * 0.1)}px), calc(-50% + ${((p.endY - p.startY) * 0.1) - 40}px)) scale(1.5); }
+                                80% { opacity: 1; transform: translate(calc(-50% + ${p.endX - p.startX}px), calc(-50% + ${p.endY - p.startY}px)) scale(1); }
+                                100% { opacity: 0; transform: translate(calc(-50% + ${p.endX - p.startX}px), calc(-50% + ${p.endY - p.startY}px)) scale(0.5); }
                             }
                         `}</style>
 

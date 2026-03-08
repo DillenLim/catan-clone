@@ -137,6 +137,24 @@ export default function TesterPage() {
         });
     };
 
+    const triggerAnimation = () => {
+        setGameState((prev: any) => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                lastDistribution: [
+                    { hexId: 1, playerId: "p1", resource: "wood", amount: 1 },
+                    { hexId: 2, playerId: "p1", resource: "brick", amount: 2 }
+                ]
+            };
+        });
+
+        // Clear it after 2 seconds to allow re-triggering
+        setTimeout(() => {
+            setGameState((prev: any) => prev ? { ...prev, lastDistribution: null } : null);
+        }, 2000);
+    };
+
     if (!gameState) return null;
 
     return (
@@ -148,6 +166,13 @@ export default function TesterPage() {
             {/* ── MAIN BOARD COLUMN ── */}
             <div className="flex-[3] flex flex-col min-w-0 overflow-hidden h-full">
                 {/* Status Bar */}
+                <button
+                    id="trigger-animation-btn"
+                    onClick={triggerAnimation}
+                    className="absolute top-4 left-4 z-50 bg-red-500 text-white p-4 font-bold rounded"
+                >
+                    Test Animation
+                </button>
                 <div className="glass-dark p-3 lg:p-4 rounded-2xl shadow-xl border border-white/5 mb-2 flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col">

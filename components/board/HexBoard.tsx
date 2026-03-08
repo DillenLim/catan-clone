@@ -25,6 +25,7 @@ export function HexBoard({ gameState, myPlayerId, onVertexClick, onEdgeClick, on
     return (
         <div className="w-full h-full flex items-center justify-center bg-black/10 rounded-3xl shadow-inner border border-white/5 overflow-hidden relative">
             <svg
+                id="catan-board-svg"
                 viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}
                 preserveAspectRatio="xMidYMid meet"
                 className="w-full h-full drop-shadow-2xl transition-all duration-700 ease-out"
