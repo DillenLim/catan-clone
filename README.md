@@ -9,8 +9,7 @@
 
 A real-time, web-based implementation of Catan. This project focuses on strict state synchronization, predictive UI feedback, and a maintainable game engine structure.
 
-<!-- Replace this with a high-quality screenshot of your game board! -->
-![Catan Gameplay Showcase](https://via.placeholder.com/1200x600?text=Catan+Gameplay+Showcase+Screenshot)
+![Catan Gameplay Showcase](./public/gameplay.png)
 
 ## Architecture
 
