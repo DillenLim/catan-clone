@@ -4,78 +4,76 @@
 [![React](https://img.shields.io/badge/react-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Framer Motion](https://img.shields.io/badge/Framer--Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)](https://www.framer.com/motion/)
 [![PartyKit](https://img.shields.io/badge/PartyKit-FFB000?style=for-the-badge&logo=partykit&logoColor=white)](https://www.partykit.io/)
 
-A real-time, web-based implementation of Catan. This project focuses on strict state synchronization, predictive UI feedback, and a maintainable game engine structure.
+A professional implementation of the classic board game Catan, featuring real-time multiplayer, an authoritative server engine, and latency-compensating predictive UI.
 
 ![Catan Gameplay Showcase](./public/gameplay.png)
 
+## Tech Stack
+
+- **Frontend**: Next.js, React, Tailwind CSS
+- **Real-time**: PartyKit (Edge-native WebSockets)
+- **State & Logic**: Immutable TypeScript engine with Zustand state management
+- **Animations**: Physics-based micro-animations via Framer Motion
+
 ## Architecture
 
-The system uses an authoritative server pattern where the client sends intents and the server broadcasts the validated state.
+Built on an **Authoritative Server** pattern: the client sends user intents, while the server validates rules and broadcasts the official game state. High-performance latency masking is achieved through **Predictive UI** overlays.
 
 ```mermaid
 graph LR
     User([User]) -- Action --> Client[Next.js Client]
     Client -- WebSocket --> PK[PartyKit Server]
-    PK -- Validate/Apply --> Logic[Game Logic Engine]
-    Logic -- New State --> PK
-    PK -- Broadcast State --> Client
-    Client -- Render Components --> User
+    PK -- Validate --> Engine[Game Engine]
+    Engine -- State --> PK
+    PK -- Broadcast --> Client
 ```
 
 ## Features
 
-- **Authoritative Server**: Validates rules, resource constraints, and placement distances server-side.
-- **Predictive Rendering**: Valid builds show translucent previews before socket confirmation for zero-latency feel.
-- **Synchronized Game Loop**: Strict enforcement of Rolling → Trading → Building sequences.
-- **Rich Event Logging**: Real-time event log parsing actions into interactive inline UI badges.
-- **Robber Mechanics**: Interactive discard modal acting directly on resource elements.
-- **Fluid Animations**: Framer Motion powered resource flights from hexes to the scoreboard.
+- **Strategic Loop**: Full turn-based cycle including Rolling, Trading, and Building.
+- **Engine Logic**: Automated resource distribution and server-side rule enforcement.
+- **Multiplayer Interaction**: Real-time trading, development cards, and robber mechanics.
+- **Live Observability**: Semantic event log providing real-time feedback with interactive UI badges.
 
 ## Project Structure
 
 ```text
-├── app/                  # Next.js App Router (UI Pages & Layouts)
+├── app/                  # UI Pages & Layouts
 ├── components/           # React Components (Board, Game, UI)
-│   ├── board/            # SVG Hex board rendering logic
-│   └── game/             # Game-specific UI (Scoreboard, Modals)
-├── lib/                  # Shared Utilities & Logic
-│   ├── game-logic/       # Core immutable game engine (Rules, Resource dist)
-│   └── types.ts          # Central TypeScript interfaces
-├── party/                # PartyKit authoritative server
+├── lib/                  # Core logic, Utilities & Types
+├── party/                # PartyKit server logic
 ├── public/               # Static assets
-└── tests/                # Unit tests & Game simulations
+└── tests/                # Unit tests & Simulations
 ```
+
+## How to Play
+
+1. **Roll**: Get resources from bordering hexes.
+2. **Trade**: Swap cards with the bank or other players.
+3. **Build**: Expand using roads, settlements, and cities.
+4. **Win**: First to 10 Victory Points wins.
 
 ## Local Setup
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Start Next.js (Frontend):**
-   ```bash
-   npm run dev
-   ```
-
-3. **Start PartyKit (Backend):**
-   ```bash
-   npx partykit dev
-   ```
-
-Navigate to `http://localhost:3000` to start a session.
+```bash
+npm install
+npm run dev             # Frontend (localhost:3000)
+npx partykit dev        # Backend
+```
 
 ## Deployment
 
-### 1. Deploy Frontend (Next.js)
-- Import the repository in your **Vercel** dashboard.
-- Set `NEXT_PUBLIC_PARTYKIT_HOST` to your deployed PartyKit URL.
+### 1. Frontend (Vercel)
+- Connect repository to Vercel.
+- Set `NEXT_PUBLIC_PARTYKIT_HOST` to your PartyKit URL.
 
-### 2. Deploy Backend (PartyKit)
-- `npx partykit login`
-- `npx partykit deploy`
+### 2. Backend (PartyKit)
+```bash
+npx partykit login
+npx partykit deploy
+```
+
 
 
