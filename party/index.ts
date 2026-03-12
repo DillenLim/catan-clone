@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import { GameState, ClientMessage, Player, GameLogEntry } from "../lib/types";
+import { GameState, ClientMessage, Player, GameLogEntry, getExpansionConfig } from "../lib/types";
 import { generateBoard, shuffleDevCards, shuffleArray } from "../lib/game-logic/board";
 import { applyAction } from "../lib/game-logic/actions";
 import { sanitizeStateForPlayer } from "../lib/sanitize";
@@ -47,7 +47,11 @@ export default class CatanRoom implements Party.Server {
                 victoryPoints: 10,
                 maritimeOnly: false,
                 turnTimerSeconds: null,
-            }
+                expansionMode: "base" as const,
+            },
+            specialBuildPhaseActive: false,
+            specialBuildOrder: [],
+            specialBuildIndex: 0,
         };
     }
 
@@ -94,8 +98,9 @@ export default class CatanRoom implements Party.Server {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Game already started." }));
                     return;
                 }
-                if (this.gameState.players.length >= 4) {
-                    sender.send(JSON.stringify({ type: "ERROR", message: "Room is full (4 players max)." }));
+                const config = getExpansionConfig(this.gameState.settings.expansionMode);
+                if (this.gameState.players.length >= config.maxPlayers) {
+                    sender.send(JSON.stringify({ type: "ERROR", message: `Room is full (${config.maxPlayers} players max).` }));
                     return;
                 }
                 if (this.gameState.players.some(p => p.color === msg.player.color)) {
@@ -149,13 +154,24 @@ export default class CatanRoom implements Party.Server {
             }
 
             // Initialize Board
-            const { hexes, vertices, edges } = generateBoard();
+            const expansionMode = this.gameState.settings.expansionMode;
+            const config = getExpansionConfig(expansionMode);
+            const { hexes, vertices, edges } = generateBoard(expansionMode);
             this.gameState.hexes = hexes;
             this.gameState.vertices = vertices;
             this.gameState.edges = edges;
 
+            // Scale bank resources
+            this.gameState.bank = {
+                wood: config.bankPerResource,
+                brick: config.bankPerResource,
+                wool: config.bankPerResource,
+                wheat: config.bankPerResource,
+                ore: config.bankPerResource,
+            };
+
             // Initialize Deck
-            this.devCardDeckOrder = shuffleDevCards();
+            this.devCardDeckOrder = shuffleDevCards(expansionMode);
             this.gameState.devCardDeckCount = this.devCardDeckOrder.length;
 
             // Randomize turn order
@@ -175,8 +191,12 @@ export default class CatanRoom implements Party.Server {
                 const player = this.gameState.players.find(p => p.id === msg.playerId);
                 if (!player) return;
 
-                // Validate turn and phase
-                if (!isPlayerTurn(msg.playerId, this.gameState)) {
+                // Validate turn - during special build, the special builder can buy
+                const isSpecialBuilder = this.gameState.phase === "special_building" && 
+                    this.gameState.specialBuildPhaseActive &&
+                    this.gameState.specialBuildOrder[this.gameState.specialBuildIndex] === msg.playerId;
+
+                if (!isPlayerTurn(msg.playerId, this.gameState) && !isSpecialBuilder) {
                     sender.send(JSON.stringify({ type: "ERROR", message: "Not your turn." }));
                     return;
                 }
@@ -219,6 +239,12 @@ export default class CatanRoom implements Party.Server {
             const result = applyAction(msg.payload, msg.playerId, this.gameState);
             if (result.valid) {
                 this.gameState = result.newState;
+
+                // Auto-skip disconnected players during special build
+                if (this.gameState.phase === "special_building" && this.gameState.specialBuildPhaseActive) {
+                    this.autoSkipDisconnectedSpecialBuilders();
+                }
+
                 this.broadcastState();
             } else {
                 sender.send(JSON.stringify({ type: "ERROR", message: result.error }));
@@ -248,6 +274,45 @@ export default class CatanRoom implements Party.Server {
             this.gameState.settings = { ...this.gameState.settings, ...msg.settings };
             this.broadcastState();
         }
+    }
+
+    autoSkipDisconnectedSpecialBuilders() {
+        while (
+            this.gameState.phase === "special_building" &&
+            this.gameState.specialBuildPhaseActive &&
+            this.gameState.specialBuildIndex < this.gameState.specialBuildOrder.length
+        ) {
+            const currentBuilderId = this.gameState.specialBuildOrder[this.gameState.specialBuildIndex];
+            const builder = this.gameState.players.find(p => p.id === currentBuilderId);
+            if (builder && builder.isConnected) break; // This player is connected, stop
+            
+            // Skip disconnected player
+            this.gameState.log.push({
+                timestamp: Date.now(),
+                text: `${builder?.name || 'Player'} is disconnected. Special build skipped.`,
+            });
+            this.gameState.specialBuildIndex++;
+        }
+        
+        // Check if all special builders are done
+        if (this.gameState.specialBuildIndex >= this.gameState.specialBuildOrder.length) {
+            this.exitSpecialBuildPhase();
+        }
+    }
+
+    exitSpecialBuildPhase() {
+        this.gameState.specialBuildPhaseActive = false;
+        this.gameState.specialBuildOrder = [];
+        this.gameState.specialBuildIndex = 0;
+        
+        // Advance to next player's roll phase
+        const pIdx = this.gameState.turnOrder.indexOf(this.gameState.currentPlayerId);
+        const nextIdx = (pIdx + 1) % this.gameState.turnOrder.length;
+        this.gameState.currentPlayerId = this.gameState.turnOrder[nextIdx];
+        this.gameState.phase = "roll";
+        
+        const nextName = this.gameState.players.find(p => p.id === this.gameState.currentPlayerId)?.name;
+        this.gameState.log.push({ timestamp: Date.now(), text: `Special build phase ended. It's now ${nextName}'s turn.` });
     }
 
     onClose(conn: Party.Connection) {
@@ -282,10 +347,13 @@ export default class CatanRoom implements Party.Server {
                 }
             }
 
-            // 4. Auto-skip logic for disconnected players (Turns, Discards, Robber moves)
+            // 4. Auto-skip logic for disconnected players (Turns, Discards, Robber moves, Special Build)
+            const isSpecialBuildTarget = this.gameState.phase === "special_building" &&
+                this.gameState.specialBuildPhaseActive &&
+                this.gameState.specialBuildOrder[this.gameState.specialBuildIndex] === conn.id;
             if (
                 (this.gameState.status === "playing" || this.gameState.status === "initial_placement") &&
-                (this.gameState.currentPlayerId === conn.id || this.gameState.pendingDiscarders.includes(conn.id))
+                (this.gameState.currentPlayerId === conn.id || this.gameState.pendingDiscarders.includes(conn.id) || isSpecialBuildTarget)
             ) {
                 setTimeout(() => {
                     // Re-check: player might have reconnected
@@ -300,6 +368,14 @@ export default class CatanRoom implements Party.Server {
                             if (this.gameState.pendingDiscarders.length === 0) {
                                 this.gameState.phase = "move_robber";
                             }
+                            this.broadcastState();
+                        }
+
+                        // Handle Special Build Phase disconnect
+                        if (this.gameState.phase === "special_building" && 
+                            this.gameState.specialBuildPhaseActive &&
+                            this.gameState.specialBuildOrder[this.gameState.specialBuildIndex] === conn.id) {
+                            this.autoSkipDisconnectedSpecialBuilders();
                             this.broadcastState();
                         }
 
