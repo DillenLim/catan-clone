@@ -287,7 +287,12 @@ export function TradePanel({ state, myPlayerId, onDispatch }: Props) {
                             Bank requires port rates (4:1 default). Players trade at any ratio.
                         </p>
                     )}
-                    {!isMyTurn && (
+                    {!isMyTurn && state.phase === "special_building" && (
+                        <p className="text-[9px] text-amber-400/50 text-center -mt-1">
+                            Trading is not allowed during Special Build Phase
+                        </p>
+                    )}
+                    {!isMyTurn && state.phase !== "special_building" && (
                         <p className="text-[9px] text-white/25 text-center -mt-1">
                             Only available on your turn
                         </p>

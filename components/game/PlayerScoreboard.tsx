@@ -16,10 +16,13 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                 <h2 className="font-outfit font-black text-white/40 text-[10px] uppercase tracking-widest">Participants</h2>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className={`flex flex-col gap-2 ${state.players.length > 5 ? "max-h-[45vh] overflow-y-auto pr-1" : ""}`}>
                 {state.players.map(p => {
                     const isMe = p.id === myPlayerId;
                     const isCurrent = state.currentPlayerId === p.id;
+                    const isSpecialBuilder = state.phase === "special_building" && 
+                        state.specialBuildPhaseActive && 
+                        state.specialBuildOrder[state.specialBuildIndex] === p.id;
                     const resCount = 'resourceCount' in p.resources
                         ? (p.resources as { resourceCount: number }).resourceCount
                         : Object.values(p.resources).reduce((sum, val) => sum + ((val as number) || 0), 0);
@@ -36,7 +39,9 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                         <div
                             key={p.id}
                             id={`scoreboard-player-${p.id}`}
-                            className={`flex flex-col p-3 rounded-xl border transition-all duration-300 ${isCurrent
+                            className={`flex flex-col ${state.players.length > 5 ? "p-2" : "p-3"} rounded-xl border transition-all duration-300 ${isSpecialBuilder
+                                ? "border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-[1.02]"
+                                : isCurrent
                                 ? "border-green-500 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-[1.02]"
                                 : "border-white/5 bg-white/5"
                                 }`}
@@ -51,21 +56,22 @@ export function PlayerScoreboard({ state, myPlayerId }: Props) {
                                         {p.name} {isMe && <span className="text-[9px] opacity-60 ml-2">YOU</span>}
                                     </span>
                                 </div>
-                                {isCurrent && <Activity size={14} className="text-green-400 animate-pulse flex-shrink-0" />}
+                                {isSpecialBuilder && <Activity size={14} className="text-amber-400 animate-pulse flex-shrink-0" />}
+                                {isCurrent && !isSpecialBuilder && <Activity size={14} className="text-green-400 animate-pulse flex-shrink-0" />}
                             </div>
 
-                            <div className="flex items-center gap-3 mt-1.5">
+                            <div className={`flex items-center gap-3 ${state.players.length > 5 ? "mt-1" : "mt-1.5"}`}>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20" title="Victory Points">
-                                    <Crown size={18} className="text-yellow-400" />
-                                    <span className="text-[16px] font-black text-yellow-100 font-mono leading-none">{vp}</span>
+                                    <Crown size={state.players.length > 5 ? 14 : 18} className="text-yellow-400" />
+                                    <span className={`${state.players.length > 5 ? "text-[13px]" : "text-[16px]"} font-black text-yellow-100 font-mono leading-none`}>{vp}</span>
                                 </div>
                                 <div id={`scoreboard-res-${p.id}`} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20" title="Resources">
-                                    <Package size={18} className="text-blue-400" />
-                                    <span className="text-[16px] font-black text-blue-100 font-mono leading-none">{resCount}</span>
+                                    <Package size={state.players.length > 5 ? 14 : 18} className="text-blue-400" />
+                                    <span className={`${state.players.length > 5 ? "text-[13px]" : "text-[16px]"} font-black text-blue-100 font-mono leading-none`}>{resCount}</span>
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20" title="Development Cards">
-                                    <Layers size={18} className="text-purple-400" />
-                                    <span className="text-[16px] font-black text-purple-100 font-mono leading-none">{devCount}</span>
+                                    <Layers size={state.players.length > 5 ? 14 : 18} className="text-purple-400" />
+                                    <span className={`${state.players.length > 5 ? "text-[13px]" : "text-[16px]"} font-black text-purple-100 font-mono leading-none`}>{devCount}</span>
                                 </div>
                             </div>
                         </div>

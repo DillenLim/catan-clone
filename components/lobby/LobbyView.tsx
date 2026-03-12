@@ -1,5 +1,5 @@
 import React from "react";
-import { GameState, GameSettings } from "../../lib/types";
+import { GameState, GameSettings, getExpansionConfig } from "../../lib/types";
 
 interface Props {
     state: GameState;
@@ -39,7 +39,7 @@ export function LobbyView({ state, myPlayerId, sendMessage }: Props) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                    <h2 className="font-bold text-white/40 uppercase tracking-widest text-xs mb-4">Players ({state.players.length}/8)</h2>
+                    <h2 className="font-bold text-white/40 uppercase tracking-widest text-xs mb-4">Players ({state.players.length}/{getExpansionConfig(state.settings.expansionMode).maxPlayers})</h2>
                     <div className="flex flex-col gap-2">
                         {state.players.map(p => (
                             <div key={p.id} className="flex items-center justify-between p-3 bg-black/40 border border-white/5 rounded-xl backdrop-blur-sm">
@@ -79,6 +79,19 @@ export function LobbyView({ state, myPlayerId, sendMessage }: Props) {
                 <div>
                     <h2 className="font-bold text-white/40 uppercase tracking-widest text-xs mb-4">Settings</h2>
                     <div className="flex flex-col gap-5 p-5 bg-black/30 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div>
+                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Game Mode</label>
+                            <select
+                                disabled={!isHost}
+                                value={state.settings.expansionMode}
+                                onChange={e => updateSettings({ expansionMode: e.target.value as "base" | "5-6" | "7-8" })}
+                                className="w-full mt-1.5 p-3 rounded-xl border border-white/10 bg-slate-900 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 font-medium"
+                            >
+                                <option value="base">Base Game (3-4 Players)</option>
+                                <option value="5-6">5-6 Player Expansion</option>
+                                <option value="7-8">7-8 Player Expansion</option>
+                            </select>
+                        </div>
                         <div>
                             <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Board Layout</label>
                             <select

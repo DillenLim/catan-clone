@@ -21,7 +21,11 @@ const ICON_MAP = {
 
 export function BuildMenu({ state, myPlayerId, onDispatch, onSetPlacementMode, placementMode }: Props) {
     const me = state.players.find(p => p.id === myPlayerId);
-    const isMyTurn = state.currentPlayerId === myPlayerId && state.phase === "action";
+    const isMyRegularTurn = state.currentPlayerId === myPlayerId && state.phase === "action";
+    const isMySpecialBuild = state.phase === "special_building" && 
+        state.specialBuildPhaseActive && 
+        state.specialBuildOrder[state.specialBuildIndex] === myPlayerId;
+    const isMyTurn = isMyRegularTurn || isMySpecialBuild;
     if (!me) return null;
 
     const buildOptions = [

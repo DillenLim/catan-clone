@@ -18,7 +18,7 @@ import { DiscardModal } from "../../../components/ui/DiscardModal";
 import { DevCardModal } from "../../../components/ui/DevCardModal";
 import { ResourceAnimator } from "../../../components/game/ResourceAnimator";
 import { DebugControls } from "../../../components/game/DebugControls";
-import { DevCardType, ResourceBundle, ResourceInput } from "../../../lib/types";
+import { DevCardType, ResourceBundle, ResourceInput, PLAYER_COLORS } from "../../../lib/types";
 
 export default function RoomPage({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -78,7 +78,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2 tracking-widest">Color</label>
                                 <div className="flex flex-wrap gap-3">
                                     {(() => {
-                                        const allColors = ["#d94848", "#4e85d1", "#e08d38", "#f4f4f4", "#50a359", "#8a5c43", "#8950a3", "#d15e9e"];
+                                        const allColors = PLAYER_COLORS.map(c => c.hex);
                                         const takenColors = new Set(gameState?.players.map(p => p.color) ?? []);
                                         return allColors.map(c => {
                                             const taken = takenColors.has(c);
@@ -296,25 +296,53 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-0.5">Phase</span>
                             <span className="font-outfit font-black text-lg text-white/80 leading-none">
-                                {gameState.phase.replace(/_/g, " ").toUpperCase()}
+                                {gameState.phase === "special_building" ? "SPECIAL BUILD" : gameState.phase.replace(/_/g, " ").toUpperCase()}
                             </span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {gameState.currentPlayerId === playerId ? (
-                            <div className="flex items-center gap-2.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                <span className="font-outfit font-black text-[12px] text-green-400 tracking-wide">YOUR TURN</span>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-end">
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-0.5">Turn</span>
-                                <span className="font-outfit font-black text-[14px] text-white/60 tracking-tight">
-                                    {gameState.players.find(p => p.id === gameState.currentPlayerId)?.name.toUpperCase()}
-                                </span>
-                            </div>
-                        )}
+                        {(() => {
+                            const isSpecialBuilder = gameState.phase === "special_building" && 
+                                gameState.specialBuildPhaseActive &&
+                                gameState.specialBuildOrder[gameState.specialBuildIndex] === playerId;
+                            const isMyRegularTurn = gameState.currentPlayerId === playerId && gameState.phase !== "special_building";
+                            
+                            if (isSpecialBuilder) {
+                                return (
+                                    <div className="flex items-center gap-2.5 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                                        <span className="font-outfit font-black text-[12px] text-amber-400 tracking-wide">YOUR SPECIAL BUILD</span>
+                                    </div>
+                                );
+                            } else if (isMyRegularTurn) {
+                                return (
+                                    <div className="flex items-center gap-2.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                        <span className="font-outfit font-black text-[12px] text-green-400 tracking-wide">YOUR TURN</span>
+                                    </div>
+                                );
+                            } else if (gameState.phase === "special_building" && gameState.specialBuildPhaseActive) {
+                                const builderName = gameState.players.find(p => p.id === gameState.specialBuildOrder[gameState.specialBuildIndex])?.name;
+                                return (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[9px] font-black text-amber-400/60 uppercase tracking-widest mb-0.5">Special Build</span>
+                                        <span className="font-outfit font-black text-[14px] text-amber-400/80 tracking-tight">
+                                            {builderName?.toUpperCase()}
+                                        </span>
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-0.5">Turn</span>
+                                        <span className="font-outfit font-black text-[14px] text-white/60 tracking-tight">
+                                            {gameState.players.find(p => p.id === gameState.currentPlayerId)?.name.toUpperCase()}
+                                        </span>
+                                    </div>
+                                );
+                            }
+                        })()}
                     </div>
                 </div>
 
@@ -365,6 +393,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-outfit font-black text-sm rounded-2xl transition-all border-b-4 border-red-800 active:border-b-0 active:translate-y-1 shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-in fade-in zoom-in-95 duration-200 uppercase tracking-widest"
                             >
                                 End Turn
+                            </button>
+                        )}
+                        {gameState.phase === "special_building" && gameState.specialBuildPhaseActive && gameState.specialBuildOrder[gameState.specialBuildIndex] === playerId && (
+                            <button
+                                onClick={() => dispatchAction({ type: "PASS_SPECIAL_BUILD" })}
+                                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-outfit font-black text-sm rounded-2xl transition-all border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-in fade-in zoom-in-95 duration-200 uppercase tracking-widest"
+                            >
+                                Pass / Done
                             </button>
                         )}
                     </div>

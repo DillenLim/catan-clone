@@ -107,7 +107,11 @@ const generateMockState = (): GameState => {
             victoryPoints: 10,
             maritimeOnly: false,
             turnTimerSeconds: null,
+            expansionMode: "base",
         },
+        specialBuildPhaseActive: false,
+        specialBuildOrder: [],
+        specialBuildIndex: 0,
     };
 };
 
