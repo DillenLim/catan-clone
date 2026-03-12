@@ -1,4 +1,4 @@
-import { GameState, GameAction, ResourceBundle, ResourceType, ResourceInput } from "../types";
+import { GameState, GameAction, ResourceType, ResourceInput, getExpansionConfig } from "../types";
 import { isValidPhase, isPlayerTurn, isValidSettlementPlacement, isValidRoadPlacement, isValidCityPlacement, canAfford, isValidRobberPlacement } from "./validation";
 import { distributeResources, getHarborRates } from "./resources";
 import { updateLongestRoad, updateLargestArmy } from "./roads";
@@ -241,12 +241,70 @@ function handleEndTurn(newState: GameState, newPlayer: GameState["players"][0], 
         newState.winnerId = winner;
         newState.log.push({ timestamp: Date.now(), text: `won the game!`, playerId: winner });
     } else {
-        const pIdx = newState.turnOrder.indexOf(playerId);
-        newState.currentPlayerId = newState.turnOrder[(pIdx + 1) % newState.turnOrder.length];
-        newState.phase = "roll";
-        const nextName = newState.players.find(p => p.id === newState.currentPlayerId)?.name;
-        newState.log.push({ timestamp: Date.now(), text: `turn ended. It's now ${nextName}'s turn.`, playerId });
+        const config = getExpansionConfig(newState.settings.expansionMode);
+        
+        if (config.specialBuildPhase && newState.players.length >= 5) {
+            // Enter special building phase
+            const pIdx = newState.turnOrder.indexOf(playerId);
+            // Build order: all OTHER players, clockwise from the player to the left of current
+            const order: string[] = [];
+            for (let i = 1; i < newState.turnOrder.length; i++) {
+                order.push(newState.turnOrder[(pIdx + i) % newState.turnOrder.length]);
+            }
+            
+            newState.specialBuildPhaseActive = true;
+            newState.specialBuildOrder = order;
+            newState.specialBuildIndex = 0;
+            newState.phase = "special_building";
+            
+            const builderName = newState.players.find(p => p.id === order[0])?.name;
+            newState.log.push({ timestamp: Date.now(), text: `turn ended. Special Building Phase begins. ${builderName} may build.`, playerId });
+        } else {
+            // Normal turn advancement (base game)
+            const pIdx = newState.turnOrder.indexOf(playerId);
+            newState.currentPlayerId = newState.turnOrder[(pIdx + 1) % newState.turnOrder.length];
+            newState.phase = "roll";
+            const nextName = newState.players.find(p => p.id === newState.currentPlayerId)?.name;
+            newState.log.push({ timestamp: Date.now(), text: `turn ended. It's now ${nextName}'s turn.`, playerId });
+        }
     }
+    return { valid: true, newState };
+}
+
+function handlePassSpecialBuild(newState: GameState, playerId: string): ActionResult {
+    if (!newState.specialBuildPhaseActive || newState.phase !== "special_building") {
+        return { valid: false, error: "Not in special building phase." };
+    }
+    
+    const currentBuilderId = newState.specialBuildOrder[newState.specialBuildIndex];
+    if (currentBuilderId !== playerId) {
+        return { valid: false, error: "Not your special build turn." };
+    }
+    
+    newState.log.push({ timestamp: Date.now(), text: `passed special build`, playerId });
+    
+    // Advance to next special builder
+    newState.specialBuildIndex++;
+    
+    if (newState.specialBuildIndex >= newState.specialBuildOrder.length) {
+        // All players have had their chance, exit special build
+        newState.specialBuildPhaseActive = false;
+        newState.specialBuildOrder = [];
+        newState.specialBuildIndex = 0;
+        
+        // Advance to next player's roll phase
+        const pIdx = newState.turnOrder.indexOf(newState.currentPlayerId);
+        const nextIdx = (pIdx + 1) % newState.turnOrder.length;
+        newState.currentPlayerId = newState.turnOrder[nextIdx];
+        newState.phase = "roll";
+        
+        const nextName = newState.players.find(p => p.id === newState.currentPlayerId)?.name;
+        newState.log.push({ timestamp: Date.now(), text: `Special build phase ended. It's now ${nextName}'s turn.` });
+    } else {
+        const nextBuilderName = newState.players.find(p => p.id === newState.specialBuildOrder[newState.specialBuildIndex])?.name;
+        newState.log.push({ timestamp: Date.now(), text: `${nextBuilderName} may now build.` });
+    }
+    
     return { valid: true, newState };
 }
 
@@ -503,9 +561,17 @@ export function applyAction(
     }
 
     // Certain actions don't require it to be your strict turn
-    const requiresTurn = action.type !== "DISCARD_CARDS" && action.type !== "ACCEPT_TRADE" && action.type !== "REJECT_TRADE";
+    const requiresTurn = action.type !== "DISCARD_CARDS" && action.type !== "ACCEPT_TRADE" && action.type !== "REJECT_TRADE" && action.type !== "PASS_SPECIAL_BUILD";
     if (requiresTurn && !isPlayerTurn(playerId, state)) {
-        return { valid: false, error: "Not your turn." };
+        // During special building, the current special builder can act
+        if (state.phase === "special_building" && state.specialBuildPhaseActive) {
+            const currentBuilderId = state.specialBuildOrder[state.specialBuildIndex];
+            if (currentBuilderId !== playerId) {
+                return { valid: false, error: "Not your special build turn." };
+            }
+        } else {
+            return { valid: false, error: "Not your turn." };
+        }
     }
 
     if (!isValidPhase(action, state.phase)) {
@@ -531,6 +597,7 @@ export function applyAction(
         case "BUILD_CITY": result = handleBuildCity(action, newState, newPlayer, playerId); break;
         case "BANK_TRADE": result = handleBankTrade(action, newState, newPlayer, playerId); break;
         case "END_TURN": result = handleEndTurn(newState, newPlayer, playerId); break;
+        case "PASS_SPECIAL_BUILD": result = handlePassSpecialBuild(newState, playerId); break;
         case "PLACE_INITIAL_SETTLEMENT": result = handlePlaceInitialSettlement(action, newState, newPlayer, playerId); break;
         case "PLACE_INITIAL_ROAD": result = handlePlaceInitialRoad(action, newState, newPlayer, playerId); break;
         case "PLAY_KNIGHT": result = handlePlayKnight(action, newState, newPlayer, playerId); break;
@@ -549,7 +616,7 @@ export function applyAction(
 
     // Post-action win check
     const immediateWinner = checkWinCondition(newState);
-    if (immediateWinner && newState.status === "playing") {
+    if (immediateWinner && newState.status === "playing" && newState.phase !== "special_building") {
         newState.status = "finished";
         newState.winnerId = immediateWinner;
         newState.log.push({ timestamp: Date.now(), text: `won the game!`, playerId: immediateWinner });

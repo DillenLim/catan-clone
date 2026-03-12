@@ -21,6 +21,9 @@ export function calculateVictoryPoints(player: Player, state: GameState): number
 }
 
 export function checkWinCondition(state: GameState): string | null {
+    // Cannot win during special building phase
+    if (state.phase === "special_building") return null;
+
     for (const p of state.players) {
         // Determine the VP points target dynamically based on lobby settings
         const vpToWin = state.settings.victoryPoints || 10;

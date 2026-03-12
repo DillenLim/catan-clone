@@ -1,4 +1,4 @@
-import { GameState, Vertex, Player, ResourceBundle, ResourceInput, ResourceType, TurnPhase, GameAction } from "../types";
+import { GameState, Vertex, Player, ResourceInput, ResourceType, TurnPhase, GameAction } from "../types";
 
 export function isPlayerTurn(playerId: string, state: GameState): boolean {
     return state.currentPlayerId === playerId;
@@ -14,6 +14,18 @@ export function isValidPhase(action: GameAction, phase: TurnPhase): boolean {
         case "PLAY_KNIGHT": return phase === "action" || phase === "roll";
         case "ACCEPT_TRADE": return phase === "action";
         case "REJECT_TRADE": return phase === "action";
+        case "PASS_SPECIAL_BUILD": return phase === "special_building";
+        // Build/buy actions allowed during both action and special_building
+        case "BUILD_ROAD":
+        case "BUILD_SETTLEMENT":
+        case "BUILD_CITY":
+        case "BUY_DEV_CARD":
+            return phase === "action" || phase === "special_building";
+        // Trading NOT allowed during special_building
+        case "BANK_TRADE":
+        case "OFFER_TRADE":
+        case "CANCEL_TRADE":
+            return phase === "action";
         default: return phase === "action";
     }
 }
