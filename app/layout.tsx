@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -17,7 +18,9 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" className={`${inter.variable} ${outfit.variable} bg-slate-900 text-slate-100`}>
-            <body className={`${inter.className} bg-slate-900 min-h-screen antialiased`}>{children}</body>
+            <body className={`${inter.className} bg-slate-900 min-h-screen antialiased`}>
+                <ErrorBoundary>{children}</ErrorBoundary>
+            </body>
         </html>
     );
 }
