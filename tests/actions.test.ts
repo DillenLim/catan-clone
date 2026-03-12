@@ -53,7 +53,10 @@ describe('Game Actions: lastDistribution Clearing', () => {
             pendingTradeOffer: null,
             log: [],
             winnerId: null,
-            settings: { boardLayout: 'random', victoryPoints: 10, maritimeOnly: false, turnTimerSeconds: null }
+            settings: { boardLayout: 'random', victoryPoints: 10, maritimeOnly: false, turnTimerSeconds: null, expansionMode: 'base' as const },
+            specialBuildPhaseActive: false,
+            specialBuildOrder: [],
+            specialBuildIndex: 0
         };
     };
 
