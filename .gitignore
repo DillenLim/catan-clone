@@ -37,3 +37,10 @@ next-env.d.ts
 
 # partykit
 .partykit/
+
+# internal docs
+AGENTS.md
+EXPANSION-SPEC.md
+
+# qoder
+.qoder/
