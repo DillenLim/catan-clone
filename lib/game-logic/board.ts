@@ -1,186 +1,245 @@
-import { Hex, Vertex, Edge, HexType, ResourceType } from "../types";
+import { Hex, Vertex, Edge, HexType, ResourceType, getExpansionConfig, DevCardType } from "../types";
 
 
 // Map a hex to its 6 abstract vertices (each shared by up to 3 hexes)
 // We designate vertices around a hex by the directions they fall between.
 // Vertex i is between direction i and (i+1)%6.
-export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge[] } {
+export function generateBoard(expansionMode: "base" | "5-6" | "7-8" = "base"): { hexes: Hex[]; vertices: Vertex[]; edges: Edge[] } {
+    const config = getExpansionConfig(expansionMode);
     const hexes: Hex[] = [];
-    const radius = 2;
 
+    // --- Hex grid generation based on expansion mode ---
     let idCounter = 0;
-    for (let q = -radius; q <= radius; q++) {
-        const r1 = Math.max(-radius, -q - radius);
-        const r2 = Math.min(radius, -q + radius);
-        for (let r = r1; r <= r2; r++) {
-            hexes.push({
-                id: idCounter++,
-                type: "desert",
-                numberToken: null,
-                hasRobber: false,
-                q,
-                r,
-            });
+
+    if (expansionMode === "base") {
+        // Base game: radius-2 hex grid (19 hexes)
+        const radius = 2;
+        for (let q = -radius; q <= radius; q++) {
+            const r1 = Math.max(-radius, -q - radius);
+            const r2 = Math.min(radius, -q + radius);
+            for (let r = r1; r <= r2; r++) {
+                hexes.push({
+                    id: idCounter++,
+                    type: "desert",
+                    numberToken: null,
+                    hasRobber: false,
+                    q,
+                    r,
+                });
+            }
+        }
+    } else if (expansionMode === "5-6") {
+        // 5-6 players: radius-3 grid (37 hexes) trimmed to 30
+        // Remove the 6 corner hexes of the radius-3 hexagon plus one additional
+        const removeSet = new Set([
+            "3,-3", "3,0", "0,3", "-3,3", "-3,0", "0,-3", // 6 pointy corners
+            "2,-3", // 1 additional to reach 30
+        ]);
+        const radius = 3;
+        for (let q = -radius; q <= radius; q++) {
+            const r1 = Math.max(-radius, -q - radius);
+            const r2 = Math.min(radius, -q + radius);
+            for (let r = r1; r <= r2; r++) {
+                if (removeSet.has(`${q},${r}`)) continue;
+                hexes.push({
+                    id: idCounter++,
+                    type: "desert",
+                    numberToken: null,
+                    hasRobber: false,
+                    q,
+                    r,
+                });
+            }
+        }
+    } else {
+        // 7-8 players: full radius-3 grid (37 hexes)
+        const radius = 3;
+        for (let q = -radius; q <= radius; q++) {
+            const r1 = Math.max(-radius, -q - radius);
+            const r2 = Math.min(radius, -q + radius);
+            for (let r = r1; r <= r2; r++) {
+                hexes.push({
+                    id: idCounter++,
+                    type: "desert",
+                    numberToken: null,
+                    hasRobber: false,
+                    q,
+                    r,
+                });
+            }
         }
     }
 
-    const terrainCounts: Record<HexType, number> = {
-        forest: 4, field: 4, mountain: 3, pasture: 4, hill: 3, desert: 1
+    const terrainCounts = config.terrainCounts;
+    const numberTokens = config.numberTokens;
+
+    // --- Helper: get hex neighbors ---
+    const getNeighbors = (hex: Hex) => hexes.filter(h2 =>
+        h2.id !== hex.id &&
+        Math.max(
+            Math.abs(hex.q - h2.q),
+            Math.abs(hex.r - h2.r),
+            Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
+        ) === 1
+    );
+
+    // --- Helper: pip value for a number token ---
+    const getPips = (n: number | null) => {
+        if (!n) return 0;
+        return 6 - Math.abs(7 - n);
     };
-    const numberTokens = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
 
+    // --- Validation logic (shared between base spiral and expanded shuffle) ---
+    const validateBoard = (): boolean => {
+        // 1. Check for number adjacency (no two same numbers next to each other)
+        // AND ensure no red numbers (6/8) are adjacent
+        for (const hex of hexes) {
+            if (hex.numberToken === null) continue;
+
+            const neighbors = getNeighbors(hex);
+            for (const n of neighbors) {
+                if (n.numberToken === null) continue;
+
+                // Case 1: Same number adjacency
+                if (n.numberToken === hex.numberToken) return false;
+
+                // Case 2: Red number adjacency
+                if ((hex.numberToken === 6 || hex.numberToken === 8) &&
+                    (n.numberToken === 6 || n.numberToken === 8)) {
+                    return false;
+                }
+            }
+        }
+
+        // 2. Check for 3-way resource clumping at vertices
+        // AND check for Vertex Pip Limits (max 13 pips per spot)
+        const resourcePips: Record<string, number[]> = {
+            forest: [], field: [], mountain: [], pasture: [], hill: []
+        };
+
+        for (const hex of hexes) {
+            if (hex.type !== "desert") {
+                resourcePips[hex.type].push(getPips(hex.numberToken));
+            }
+
+            if (hex.type === "desert") continue;
+
+            const neighbors = getNeighbors(hex);
+
+            // Check for triangles of neighbors (hexes that meet at a vertex)
+            for (let i = 0; i < neighbors.length; i++) {
+                for (let j = i + 1; j < neighbors.length; j++) {
+                    const n1 = neighbors[i];
+                    const n2 = neighbors[j];
+
+                    // If n1 and n2 are also neighbors, they form a triangle with 'hex'
+                    if (Math.max(
+                        Math.abs(n1.q - n2.q),
+                        Math.abs(n1.r - n2.r),
+                        Math.abs((-n1.q - n1.r) - (-n2.q - n2.r))
+                    ) === 1) {
+                        // Triangle Found (Vertex intersection of hex, n1, n2)
+
+                        // Check Rule: No 3-way resource clumping
+                        if (hex.type === n1.type && hex.type === n2.type) return false;
+
+                        // Check Rule: Pip sum limit (Max 13 for competitive balance)
+                        const totalPips = getPips(hex.numberToken) + getPips(n1.numberToken) + getPips(n2.numberToken);
+                        if (totalPips > 13) return false;
+                    }
+                }
+            }
+        }
+
+        // 3. Ensure Resource Diversity (No resource type is "dead")
+        // Every resource must have at least one hex with pips >= 4 (5,6,8,9)
+        for (const [, pips] of Object.entries(resourcePips)) {
+            if (!pips.some(p => p >= 4)) return false;
+        }
+
+        return true;
+    };
+
+    // --- Terrain and token assignment ---
     const assignHexes = () => {
-        // Standard A-R token sequence for the spiral
-        const tokenSequence = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11];
+        if (expansionMode === "base") {
+            // Base game: use the fixed spiral-based approach
+            const tokenSequence = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11];
 
-        // Define the spiral order for hexes (Axial coordinates)
-        // This is a fixed spiral starting from a corner and moving inward.
-        const spiralCoords = [
-            { q: 0, r: -2 }, { q: 1, r: -2 }, { q: 2, r: -2 }, { q: 2, r: -1 }, { q: 2, r: 0 },
-            { q: 1, r: 1 }, { q: 0, r: 2 }, { q: -1, r: 2 }, { q: -2, r: 2 }, { q: -2, r: 1 },
-            { q: -2, r: 0 }, { q: -1, r: -1 },
-            // Inner ring
-            { q: 0, r: -1 }, { q: 1, r: -1 }, { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 }, { q: -1, r: 0 },
-            // Center
-            { q: 0, r: 0 }
-        ];
+            const spiralCoords = [
+                { q: 0, r: -2 }, { q: 1, r: -2 }, { q: 2, r: -2 }, { q: 2, r: -1 }, { q: 2, r: 0 },
+                { q: 1, r: 1 }, { q: 0, r: 2 }, { q: -1, r: 2 }, { q: -2, r: 2 }, { q: -2, r: 1 },
+                { q: -2, r: 0 }, { q: -1, r: -1 },
+                // Inner ring
+                { q: 0, r: -1 }, { q: 1, r: -1 }, { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 }, { q: -1, r: 0 },
+                // Center
+                { q: 0, r: 0 }
+            ];
 
-        let valid = false;
-        let attempts = 0;
+            let valid = false;
+            let attempts = 0;
 
-        while (!valid && attempts < 200) {
-            attempts++;
-            valid = true;
+            while (!valid && attempts < 200) {
+                attempts++;
 
-            // 1. Shuffle terrains
-            let terrains: HexType[] = [];
-            for (const [t, count] of Object.entries(terrainCounts)) {
-                for (let i = 0; i < count; i++) terrains.push(t as HexType);
-            }
-            terrains = shuffleArray(terrains);
-
-            // 2. Assign terrains and tokens along the spiral
-            let tokenIdx = 0;
-            const tempHexMap = new Map<string, Hex>();
-
-            for (let i = 0; i < spiralCoords.length; i++) {
-                const coord = spiralCoords[i];
-                const hex = hexes.find(h => h.q === coord.q && h.r === coord.r)!;
-                hex.type = terrains[i];
-
-                if (hex.type === "desert") {
-                    hex.numberToken = null;
-                    hex.hasRobber = true;
-                } else {
-                    hex.numberToken = tokenSequence[tokenIdx++];
-                    hex.hasRobber = false;
+                // 1. Shuffle terrains
+                let terrains: HexType[] = [];
+                for (const [t, count] of Object.entries(terrainCounts)) {
+                    for (let i = 0; i < count; i++) terrains.push(t as HexType);
                 }
-                tempHexMap.set(`${hex.q},${hex.r}`, hex);
-            }
+                terrains = shuffleArray(terrains);
 
-            // 3. Check for number adjacency (no two same numbers next to each other)
-            // AND ensure no red numbers (6/8) are adjacent
-            for (const hex of hexes) {
-                if (hex.numberToken === null) continue;
+                // 2. Assign terrains and tokens along the spiral
+                let tokenIdx = 0;
+                for (let i = 0; i < spiralCoords.length; i++) {
+                    const coord = spiralCoords[i];
+                    const hex = hexes.find(h => h.q === coord.q && h.r === coord.r)!;
+                    hex.type = terrains[i];
 
-                const neighbors = hexes.filter(h2 =>
-                    h2.id !== hex.id &&
-                    Math.max(
-                        Math.abs(hex.q - h2.q),
-                        Math.abs(hex.r - h2.r),
-                        Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
-                    ) === 1
-                );
-
-                for (const n of neighbors) {
-                    if (n.numberToken === null) continue;
-
-                    // Case 1: Same number adjacency
-                    if (n.numberToken === hex.numberToken) {
-                        valid = false;
-                        break;
-                    }
-
-                    // Case 2: Red number adjacency
-                    if ((hex.numberToken === 6 || hex.numberToken === 8) &&
-                        (n.numberToken === 6 || n.numberToken === 8)) {
-                        valid = false;
-                        break;
+                    if (hex.type === "desert") {
+                        hex.numberToken = null;
+                        hex.hasRobber = true;
+                    } else {
+                        hex.numberToken = tokenSequence[tokenIdx++];
+                        hex.hasRobber = false;
                     }
                 }
-                if (!valid) break;
+
+                valid = validateBoard();
             }
+        } else {
+            // Expanded boards (5-6, 7-8): shuffle-and-validate approach
+            let valid = false;
+            let attempts = 0;
+            const maxAttempts = 500;
 
-            if (!valid) continue;
+            while (!valid && attempts < maxAttempts) {
+                attempts++;
 
-            // 4. Check for 3-way resource clumping at vertices
-            // AND check for Vertex Pip Limits (max 13 pips per spot)
-            const getPips = (n: number | null) => {
-                if (!n) return 0;
-                return 6 - Math.abs(7 - n);
-            };
+                // 1. Shuffle terrains and assign to hexes
+                let terrains: HexType[] = [];
+                for (const [t, count] of Object.entries(terrainCounts)) {
+                    for (let i = 0; i < count; i++) terrains.push(t as HexType);
+                }
+                terrains = shuffleArray(terrains);
 
-            const resourcePips: Record<string, number[]> = {
-                forest: [], field: [], mountain: [], pasture: [], hill: []
-            };
-
-            for (const hex of hexes) {
-                if (hex.type !== "desert") {
-                    resourcePips[hex.type].push(getPips(hex.numberToken));
+                for (let i = 0; i < hexes.length; i++) {
+                    hexes[i].type = terrains[i];
+                    hexes[i].hasRobber = terrains[i] === "desert";
+                    hexes[i].numberToken = null;
                 }
 
-                if (hex.type === "desert") continue;
-
-                const neighbors = hexes.filter(h2 =>
-                    h2.id !== hex.id &&
-                    Math.max(
-                        Math.abs(hex.q - h2.q),
-                        Math.abs(hex.r - h2.r),
-                        Math.abs((-hex.q - hex.r) - (-h2.q - h2.r))
-                    ) === 1
-                );
-
-                // Check for triangles of neighbors (hexes that meet at a vertex)
-                for (let i = 0; i < neighbors.length; i++) {
-                    for (let j = i + 1; j < neighbors.length; j++) {
-                        const n1 = neighbors[i];
-                        const n2 = neighbors[j];
-
-                        // If n1 and n2 are also neighbors, they form a triangle with 'hex'
-                        if (Math.max(
-                            Math.abs(n1.q - n2.q),
-                            Math.abs(n1.r - n2.r),
-                            Math.abs((-n1.q - n1.r) - (-n2.q - n2.r))
-                        ) === 1) {
-                            // Triangle Found (Vertex intersection of hex, n1, n2)
-
-                            // Check Rule: No 3-way resource clumping
-                            if (hex.type === n1.type && hex.type === n2.type) {
-                                valid = false;
-                                break;
-                            }
-
-                            // Check Rule: Pip sum limit (Max 13 for competitive balance)
-                            const totalPips = getPips(hex.numberToken) + getPips(n1.numberToken) + getPips(n2.numberToken);
-                            if (totalPips > 13) {
-                                valid = false;
-                                break;
-                            }
-                        }
+                // 2. Shuffle number tokens and assign to non-desert hexes
+                const shuffledTokens = shuffleArray([...numberTokens]);
+                let tokenIdx = 0;
+                for (const hex of hexes) {
+                    if (hex.type !== "desert") {
+                        hex.numberToken = shuffledTokens[tokenIdx++];
                     }
-                    if (!valid) break;
                 }
-                if (!valid) break;
-            }
-            if (!valid) continue;
 
-            // 5. Ensure Resource Diversity (No resource type is "dead")
-            // Every resource must have at least one hex with pips >= 4 (5,6,8,9)
-            for (const [type, pips] of Object.entries(resourcePips)) {
-                if (!pips.some(p => p >= 4)) {
-                    valid = false;
-                    break;
-                }
+                // 3. Validate the board
+                valid = validateBoard();
             }
         }
     };
@@ -284,14 +343,17 @@ export function generateBoard(): { hexes: Hex[]; vertices: Vertex[]; edges: Edge
         }
     }
 
-    const harborTypes: (ResourceType | "generic")[] = ["generic", "generic", "generic", "generic", "wood", "brick", "wool", "wheat", "ore"];
-    const shuffledHarborTypes = shuffleArray([...harborTypes]);
+    const shuffledHarborTypes = shuffleArray([...config.harborTypes]);
 
-    // 3. Space out harbors (pattern of gaps to symmetrically distribute 9 harbors over 30 edges)
-    const edgeGaps = [3, 4, 3, 3, 4, 3, 3, 4, 3];
+    // 3. Space out harbors dynamically based on coastal edge count and harbor count
+    const harborCount = shuffledHarborTypes.length;
+    const coastalCount = sortedCoastalEdges.length;
+    const baseGap = Math.floor(coastalCount / harborCount);
+    const gapRemainder = coastalCount % harborCount;
+    const edgeGaps = Array.from({ length: harborCount }, (_, i) => i < gapRemainder ? baseGap + 1 : baseGap);
+
     let currentIndex = 0;
-
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < harborCount; i++) {
         if (currentIndex >= sortedCoastalEdges.length) break;
         const edge = sortedCoastalEdges[currentIndex];
         const type = shuffledHarborTypes[i];
@@ -313,12 +375,13 @@ export function shuffleArray<T>(arr: T[]): T[] {
     return cloned;
 }
 
-export function shuffleDevCards(): import("../types").DevCardType[] {
-    const deck: import("../types").DevCardType[] = [];
-    for (let i = 0; i < 14; i++) deck.push("knight");
-    for (let i = 0; i < 5; i++) deck.push("victory_point");
-    for (let i = 0; i < 2; i++) deck.push("road_building");
-    for (let i = 0; i < 2; i++) deck.push("year_of_plenty");
-    for (let i = 0; i < 2; i++) deck.push("monopoly");
+export function shuffleDevCards(expansionMode: "base" | "5-6" | "7-8" = "base"): DevCardType[] {
+    const config = getExpansionConfig(expansionMode);
+    const deck: DevCardType[] = [];
+    for (let i = 0; i < config.devCards.knight; i++) deck.push("knight");
+    for (let i = 0; i < config.devCards.victory_point; i++) deck.push("victory_point");
+    for (let i = 0; i < config.devCards.road_building; i++) deck.push("road_building");
+    for (let i = 0; i < config.devCards.year_of_plenty; i++) deck.push("year_of_plenty");
+    for (let i = 0; i < config.devCards.monopoly; i++) deck.push("monopoly");
     return shuffleArray(deck);
 }
