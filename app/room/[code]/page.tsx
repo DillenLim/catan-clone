@@ -4,6 +4,8 @@ import { useState } from "react";
 import { usePlayerSession } from "../../../hooks/usePlayerSession";
 import { usePartyKit } from "../../../hooks/usePartyKit";
 import { useGameStore } from "../../../store/gameStore";
+import { useSoundEffects } from "../../../hooks/useSoundEffects";
+import { useSound } from "../../../hooks/useSound";
 import { LobbyView } from "../../../components/lobby/LobbyView";
 import { HexBoard } from "../../../components/board/HexBoard";
 import { PlayerScoreboard } from "../../../components/game/PlayerScoreboard";
@@ -25,6 +27,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     const playerId = usePlayerSession();
     const { gameState, isConnected, error } = useGameStore();
     const { dispatchAction, sendMessage } = usePartyKit(roomCode, playerId);
+    const { toggleMute } = useSound();
 
     const [playerName, setPlayerName] = useState("");
     const [playerColor, setPlayerColor] = useState("#d94848");
@@ -41,6 +44,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     const [roadBuildingEdge1, setRoadBuildingEdge1] = useState<number | null>(null);
 
     const [showDebug, setShowDebug] = useState(false);
+    const [soundMuted, setSoundMuted] = useState(false);
+
+    // Sound effects - reacts to game state diffs
+    useSoundEffects(gameState, playerId ?? "");
 
     if (!playerId) return null;
 
@@ -292,6 +299,25 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 {gameState.roomCode}
                             </span>
                         </div>
+                        <div className="w-[1px] h-6 bg-white/10 mx-1" />
+                        <button
+                            onClick={() => { const m = toggleMute(); setSoundMuted(m); }}
+                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white/70"
+                            title={soundMuted ? "Unmute sounds" : "Mute sounds"}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                {soundMuted ? (
+                                    <line x1="23" y1="9" x2="17" y2="15" />
+                                ) : (
+                                    <>
+                                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                                    </>
+                                )}
+                                {soundMuted && <line x1="17" y1="9" x2="23" y2="15" />}
+                            </svg>
+                        </button>
                         <div className="w-[1px] h-6 bg-white/10 mx-1" />
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-0.5">Phase</span>
