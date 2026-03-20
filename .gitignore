@@ -44,3 +44,8 @@ EXPANSION-SPEC.md
 
 # qoder
 .qoder/
+
+# temporary and unprofessional files
+.vercel-tmp/
+vibe_images/
+nul
